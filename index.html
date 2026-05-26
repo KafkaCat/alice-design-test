@@ -6,7 +6,7 @@
 <style>
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
-    max-width: 800px;
+    max-width: 900px;
     margin: 0 auto;
     padding: 40px 32px 80px;
     color: #1a1a1a;
@@ -23,12 +23,19 @@
     padding: 18px 24px;
     margin: 12px 0;
     transition: border-color 0.15s;
+    border-left: 4px solid #6366f1;
   }
   .doc:hover { border-color: #1a73e8; }
+  .doc.green { border-left-color: #10b981; }
+  .doc.orange { border-left-color: #f59e0b; }
+  .doc.teal { border-left-color: #14b8a6; }
   .doc a { color: #1a73e8; text-decoration: none; font-weight: 600; font-size: 16px; }
   .doc .meta { color: #888; font-size: 12px; margin-top: 4px; }
   .doc .summary { color: #555; font-size: 13.5px; margin-top: 8px; }
   .tag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; background: #eef; color: #336; margin-right: 4px; }
+  .tag.green { background: #dcfce7; color: #166534; }
+  .tag.orange { background: #fed7aa; color: #9a3412; }
+  .tag.teal { background: #ccfbf1; color: #115e75; }
   footer { margin-top: 80px; color: #aaa; font-size: 12px; text-align: center; }
   footer a { color: #888; }
 </style>
@@ -41,25 +48,53 @@
 <h2>权限模型 / 多租户 / Agent runtime</h2>
 
 <div class="doc">
-  <a href="./design-research/permission-model/">Alice Agent 权限模型 v3 — 内部协作场景</a>
+  <a href="./design-research/permission-model/">① Alice Agent 权限模型 v3 — 内部协作场景</a>
   <div class="meta">
-    <span class="tag">design</span>
-    <span class="tag">permission</span>
-    <span class="tag">agent</span>
+    <span class="tag">core</span>
+    <span class="tag">invariants</span>
+    <span class="tag">v3</span>
     2026-05-26
   </div>
   <div class="summary">
     9 个设计 invariant（accounter 模型、agent first-class assignee、audit-over-ACL、LLM-as-judge intrusive filter）。
-    14 维度对比 Alice 设计 vs Linear/Notion/Cursor/Devin/Glean。包含完整工程设计 + 6-phase roadmap。
+    14 维度对比 Alice vs Linear/Notion/Cursor/Devin/Glean。包含完整工程设计 + 6-phase roadmap。
+  </div>
+</div>
+
+<div class="doc orange">
+  <a href="./design-research/permission-model/system-level-features.html">② 系统级权限功能 — 要做的事情清单</a>
+  <div class="meta">
+    <span class="tag orange">engineering</span>
+    <span class="tag orange">marketplace</span>
+    <span class="tag orange">ui</span>
+    2026-05-26
+  </div>
+  <div class="summary">
+    把 v3 理念落到具体系统级功能：五级 role 体系、agent marketplace、accounter UI、memory 基础设施（底座 × Alice memory）、observability dashboard、intrusive filter UI、service agent 路径、issue×agent 集成。
+  </div>
+</div>
+
+<div class="doc teal">
+  <a href="./design-research/permission-model/drive-permission-design.html">③ Drive 权限设计 — 融入 v3 模型</a>
+  <div class="meta">
+    <span class="tag teal">drive</span>
+    <span class="tag teal">acl</span>
+    <span class="tag teal">rebac</span>
+    2026-05-26
+  </div>
+  <div class="summary">
+    把 v3 的 invariant（accounter / audit-over-ACL / agent first-class）注入 drive。
+    四种 space kind（workspace / team / private / agent_output），修复 drive_reference 跨 space 黑盒，
+    space-level ACL 而非 file-level。7-phase rollout 接 drive 当前 schema。
   </div>
 </div>
 
 <h2>待写</h2>
 
 <div class="doc" style="opacity:0.5;">
-  <span style="color:#999;font-weight:600;">Agent runtime 物理隔离 — daemon vs cloud microVM vs hybrid</span>
+  <span style="color:#999;font-weight:600;">Agent runtime 物理隔离 — bubblewrap / cloud microVM / hybrid</span>
   <div class="meta">未开始</div>
-  <div class="summary">权限模型之外的另一独立维度：agent 跑在哪里、怎么物理隔离。</div>
+  <div class="summary">权限模型之外的另一独立维度：agent 跑在哪里、怎么物理隔离。当前 Codex on Linux 是 Landlock 真硬约束；Codex on macOS 几乎裸跑；Claude 完全无 sandbox。需要单独讨论 daemon-on-user vs cloud microVM 的取舍。</div>
 </div>
 
 <footer>
