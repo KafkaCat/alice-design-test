@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Alice Design Docs</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+    color: #1a1a1a;
+    background: #fafafa;
+    line-height: 1.6;
+  }
+  h1 { font-size: 32px; margin-bottom: 6px; letter-spacing: -0.5px; }
+  .sub { color: #888; font-size: 14px; margin-bottom: 32px; }
+  h2 { font-size: 18px; margin-top: 40px; padding-bottom: 6px; border-bottom: 1px solid #ddd; }
+  .doc {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 18px 24px;
+    margin: 12px 0;
+    transition: border-color 0.15s;
+  }
+  .doc:hover { border-color: #1a73e8; }
+  .doc a { color: #1a73e8; text-decoration: none; font-weight: 600; font-size: 16px; }
+  .doc .meta { color: #888; font-size: 12px; margin-top: 4px; }
+  .doc .summary { color: #555; font-size: 13.5px; margin-top: 8px; }
+  .tag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; background: #eef; color: #336; margin-right: 4px; }
+  footer { margin-top: 80px; color: #aaa; font-size: 12px; text-align: center; }
+  footer a { color: #888; }
+</style>
+</head>
+<body>
+
+<h1>Alice Design Docs</h1>
+<p class="sub">内部协作工具 + AI agent 第一公民项目的设计文档集</p>
+
+<h2>权限模型 / 多租户 / Agent runtime</h2>
+
+<div class="doc">
+  <a href="./design-research/permission-model/">Alice Agent 权限模型 v3 — 内部协作场景</a>
+  <div class="meta">
+    <span class="tag">design</span>
+    <span class="tag">permission</span>
+    <span class="tag">agent</span>
+    2026-05-26
+  </div>
+  <div class="summary">
+    9 个设计 invariant（accounter 模型、agent first-class assignee、audit-over-ACL、LLM-as-judge intrusive filter）。
+    14 维度对比 Alice 设计 vs Linear/Notion/Cursor/Devin/Glean。包含完整工程设计 + 6-phase roadmap。
+  </div>
+</div>
+
+<h2>待写</h2>
+
+<div class="doc" style="opacity:0.5;">
+  <span style="color:#999;font-weight:600;">Agent runtime 物理隔离 — daemon vs cloud microVM vs hybrid</span>
+  <div class="meta">未开始</div>
+  <div class="summary">权限模型之外的另一独立维度：agent 跑在哪里、怎么物理隔离。</div>
+</div>
+
+<footer>
+  <a href="https://github.com/KafkaCat/alice-design-test">GitHub repo</a> ·
+  <a href="https://github.com/KafkaCat/alice-design-test/discussions">Discussions</a> ·
+  评论用 giscus + GitHub Discussions
+</footer>
+
+</body>
+</html>
