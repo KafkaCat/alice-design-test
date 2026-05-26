@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Alice 系统级权限功能 — 要做的事情清单</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 44px 80px;
+    color: #1a1a1a;
+    background: #f7f8fa;
+    line-height: 1.65;
+    font-size: 14.5px;
+  }
+  h1 { font-size: 32px; margin-bottom: 4px; font-weight: 700; letter-spacing: -0.5px; }
+  h2 {
+    font-size: 22px;
+    margin-top: 48px;
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-weight: 600;
+    display: inline-block;
+  }
+  h2.purple { background: #ede9fe; color: #5b21b6; }
+  h2.blue   { background: #dbeafe; color: #1e40af; }
+  h2.green  { background: #dcfce7; color: #166534; }
+  h2.orange { background: #fed7aa; color: #9a3412; }
+  h2.red    { background: #fee2e2; color: #991b1b; }
+  h2.teal   { background: #ccfbf1; color: #115e75; }
+  h2.amber  { background: #fef3c7; color: #92400e; }
+  h2.pink   { background: #fce7f3; color: #9d174d; }
+  h3 { font-size: 17px; margin-top: 24px; font-weight: 600; }
+  h4 { font-size: 14px; margin-top: 14px; margin-bottom: 4px; font-weight: 600; color: #555; }
+  .meta { color: #888; font-size: 12.5px; margin-bottom: 28px; }
+  .hero {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: #fff;
+    border-radius: 8px;
+    padding: 28px 36px;
+    margin: 20px 0 32px;
+  }
+  .hero h2 {
+    color: #fff;
+    background: transparent;
+    margin: 0 0 8px;
+    padding: 0;
+    font-size: 22px;
+  }
+  .hero p { margin: 8px 0; font-size: 15px; }
+  .hero strong { color: #fef9c3; }
+
+  code { font-family: "SF Mono", Menlo, Consolas, monospace; background: #f0f0f0; padding: 1px 6px; border-radius: 3px; font-size: 12.5px; }
+  pre { background: #1e1e1e; color: #d4d4d4; padding: 14px 18px; border-radius: 6px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; }
+
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13px; background: #fff; border-radius: 6px; overflow: hidden; }
+  th, td { border: 1px solid #e5e7eb; padding: 9px 12px; vertical-align: top; text-align: left; }
+  th { background: #f3f4f6; font-weight: 600; font-size: 12.5px; color: #333; }
+  td.good { background: #ecfdf5; }
+  td.bad { background: #fef2f2; }
+  td.mid { background: #fffbeb; }
+  td.na { background: #f5f5f5; color: #999; }
+
+  ul, ol { padding-left: 24px; margin: 8px 0; }
+  li { margin-bottom: 5px; }
+  a { color: #1a73e8; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .module-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin: 20px 0;
+  }
+  .module {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px 24px;
+    border: 1px solid #e5e7eb;
+    border-top: 3px solid #6366f1;
+  }
+  .module.green   { border-top-color: #10b981; }
+  .module.orange  { border-top-color: #f97316; }
+  .module.red     { border-top-color: #ef4444; }
+  .module.purple  { border-top-color: #8b5cf6; }
+  .module.blue    { border-top-color: #3b82f6; }
+  .module.amber   { border-top-color: #f59e0b; }
+  .module.teal    { border-top-color: #14b8a6; }
+  .module.pink    { border-top-color: #ec4899; }
+  .module h3 { margin-top: 0; margin-bottom: 8px; }
+  .module .num {
+    display: inline-block;
+    background: #1f2937;
+    color: #fff;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 22px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-right: 6px;
+  }
+  .module .meta-line { font-size: 12px; color: #888; margin-bottom: 10px; }
+  .module ul { font-size: 13.5px; }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .stat {
+    background: #fff;
+    border-radius: 6px;
+    padding: 14px 16px;
+    border-left: 3px solid #6366f1;
+    text-align: center;
+  }
+  .stat .num { font-size: 26px; font-weight: 700; color: #1f2937; line-height: 1; }
+  .stat .label { font-size: 11.5px; color: #666; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .callout {
+    padding: 14px 20px;
+    border-radius: 6px;
+    margin: 14px 0;
+    border-left: 4px solid;
+  }
+  .callout.info     { background: #eff6ff; border-color: #3b82f6; }
+  .callout.warn     { background: #fffbeb; border-color: #f59e0b; }
+  .callout.danger   { background: #fef2f2; border-color: #ef4444; }
+  .callout.success  { background: #f0fdf4; border-color: #22c55e; }
+  .callout.note     { background: #faf5ff; border-color: #a855f7; }
+  .callout strong:first-child { color: inherit; }
+  .callout-title { font-weight: 700; margin-bottom: 4px; display: block; font-size: 14px; }
+
+  .tag {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 4px;
+    font-size: 11.5px;
+    font-weight: 600;
+    margin-right: 4px;
+    margin-bottom: 2px;
+  }
+  .tag-must    { background: #fee2e2; color: #991b1b; }
+  .tag-should  { background: #fed7aa; color: #9a3412; }
+  .tag-could   { background: #fef3c7; color: #92400e; }
+  .tag-later   { background: #e0e7ff; color: #3730a3; }
+  .tag-done    { background: #dcfce7; color: #166534; }
+  .tag-effort  { background: #f3f4f6; color: #374151; }
+
+  .mockup {
+    background: #fafafa;
+    border: 1px dashed #9ca3af;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 12px 0;
+    font-family: "SF Mono", Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre;
+    overflow-x: auto;
+    color: #374151;
+  }
+
+  .role-chip {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11.5px;
+    font-weight: 600;
+    margin: 2px 4px 2px 0;
+  }
+  .role-user    { background: #f3f4f6; color: #374151; }
+  .role-contrib { background: #dbeafe; color: #1e40af; }
+  .role-acc     { background: #ede9fe; color: #5b21b6; }
+  .role-sadmin  { background: #fed7aa; color: #9a3412; }
+  .role-super   { background: #fecaca; color: #991b1b; }
+
+  .arrow { font-size: 18px; color: #6366f1; margin: 0 6px; }
+
+  .priority-bar {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    background: #f9fafb;
+    padding: 3px 9px;
+    border-radius: 12px;
+    color: #6b7280;
+  }
+  .priority-bar .dot { width: 8px; height: 8px; border-radius: 50%; background: #d1d5db; }
+  .priority-bar .dot.on { background: #ef4444; }
+  .priority-bar.p1 .dot:nth-child(1) { background: #ef4444; }
+  .priority-bar.p2 .dot:nth-child(1), .priority-bar.p2 .dot:nth-child(2) { background: #f59e0b; }
+  .priority-bar.p3 .dot { background: #10b981; }
+</style>
+</head>
+<body>
+
+<h1>系统级权限功能 — 要做的事情清单</h1>
+<div class="meta">配套 v3 权限模型设计稿 · 2026-05-26 · 工程 to-do，不是再讲哲学</div>
+
+<div class="hero">
+<h2>这份文档是什么</h2>
+<p>v3 设计稿讲的是 <strong>设计理念和 invariant</strong>。这份是把那些理念落到具体要做的<strong>系统级功能</strong>上 — Marketplace、Role 体系、Accounter UI、Memory 基础设施、Observability dashboard、Intrusive filter UI 等等。每个模块给出"要做什么、为什么、优先级、依赖关系"。</p>
+<p>所有模块加起来是一张<strong>系统级蓝图</strong>，按优先级和依赖关系分 Phase 排期，对应 v3 §10 phasing。</p>
+</div>
+
+<div class="stat-grid">
+  <div class="stat"><div class="num">8</div><div class="label">系统级模块</div></div>
+  <div class="stat"><div class="num">5</div><div class="label">用户角色层级</div></div>
+  <div class="stat"><div class="num">6</div><div class="label">Phase 阶段</div></div>
+  <div class="stat"><div class="num">~6 mo</div><div class="label">完整 roadmap</div></div>
+</div>
+
+<!-- ============================ -->
+<h2 class="purple">1. 五级 Role 体系（基础）</h2>
+
+<p>权限不靠 fine-grained capability，但仍需要<strong>少量 role</strong>区分 "谁能做什么 system-level action"。五级金字塔：</p>
+
+<table>
+<thead>
+<tr><th>Role</th><th>能做什么</th><th>谁来 grant</th><th>预估人数</th></tr>
+</thead>
+<tbody>
+<tr>
+  <td><span class="role-chip role-user">regular user</span></td>
+  <td>用所有 agent（user_equivalent mode）；创建自己 own 的 agent 并当 accounter；提 iteration request 给别人的 agent</td>
+  <td>workspace 成员自动获得</td>
+  <td>~95% 员工</td>
+</tr>
+<tr>
+  <td><span class="role-chip role-contrib">contributor (per-agent)</span></td>
+  <td>对<em>某个特定 agent</em> 提 intrusive iteration；做 non-intrusive 修改无需 approve</td>
+  <td>该 agent 的 accounter</td>
+  <td>每 agent ≤ 5 人</td>
+</tr>
+<tr>
+  <td><span class="role-chip role-acc">accounter (per-agent)</span></td>
+  <td>对<em>该 agent</em> 负责；approve 所有 intrusive iteration；处理 anomaly digest；负责 transfer / 离职 orphan</td>
+  <td>agent 创建时绑定，可 transfer</td>
+  <td>≥ 1 / agent</td>
+</tr>
+<tr>
+  <td><span class="role-chip role-sadmin">service_agent_admin</span></td>
+  <td>所有 regular user 能做的 + 创建 service mode agent + 担任 service agent 的 accounter + co-sign 别的 service agent</td>
+  <td>superadmin grant</td>
+  <td>~2–5 人</td>
+</tr>
+<tr>
+  <td><span class="role-chip role-super">superadmin</span></td>
+  <td>全权 — workspace / user / agent / observability 全部 admin</td>
+  <td>系统初始化 / 现有 superadmin grant</td>
+  <td>~1–2 人</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout note">
+<span class="callout-title">为什么不用 RBAC role 矩阵？</span>
+这五级不是为了表达"能不能调用 X tool"。Tool 调用走 intrusive filter（v3 §7.2）。Role 只解决<strong>三件事</strong>：(1) 谁能担任谁的 accounter；(2) 谁能创建 service agent；(3) 谁能看 system-wide observability。其余 99% 的"权限"问题不在 role 层解决。
+</div>
+
+<h3>1.1 实现细节</h3>
+
+<ul>
+<li><span class="tag tag-must">MUST</span> <code>user.is_service_agent_admin</code> + <code>user.is_superadmin</code> 已有 boolean 字段 → 只需新增 service_agent_admin 那个字段</li>
+<li><span class="tag tag-must">MUST</span> <code>agent_contributor</code> 表（v3 §7.1 已列）</li>
+<li><span class="tag tag-should">SHOULD</span> Role grant / revoke 写 audit log（谁给谁升了 service_agent_admin，记录到 OTel）</li>
+<li><span class="tag tag-could">COULD</span> Role expiration — service_agent_admin 默认 90 天到期需 superadmin 续期（防止 role 累积）</li>
+</ul>
+
+<!-- ============================ -->
+<h2 class="blue">2. Agent Marketplace — 一键安装底座 + skill + memory pointer</h2>
+
+<p>你提到的核心系统级功能。Alice 公司内会有几十个 agent，每个 agent 由<strong>底座 + skills + memory + accounter + 配置</strong>组成。需要一个统一入口让员工：</p>
+
+<ul>
+<li>浏览公司里现有的 agent（按 team / category / popularity）</li>
+<li>一键 install 一个公开的 agent 到自己的 workspace</li>
+<li>选择 install template 时自动带上 memory pointer / skill bundle</li>
+<li>看到 agent 的 accounter / 评分 / 使用次数 / 最近的 intrusive event</li>
+</ul>
+
+<h3>2.1 Marketplace 主页 mockup</h3>
+
+<div class="mockup">┌──────────────────────────────────────────────────────────────┐
+│  Alice Agent Marketplace                          [+ New Agent]│
+├──────────────────────────────────────────────────────────────┤
+│  Search: [ deploy_____________ ]   Filter: [Team▾] [Cat▾]    │
+├──────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐           │
+│  │ 🤖 DeployBot│  │ 📝 PR Reviewer  │ 🐛 BugTriager│          │
+│  │ accounter:  │  │ accounter:  │  │ accounter:  │           │
+│  │ @alice      │  │ @bob        │  │ @carol      │           │
+│  │ ⭐ 4.8 (24) │  │ ⭐ 4.5 (12) │  │ ⭐ 4.9 (40) │           │
+│  │ ⚠ 0 issue  │  │ ⚠ 0 issue  │  │ ⚠ 1 issue  │           │
+│  │ codex/sonnet│  │ claude/opus │  │ codex/haiku │           │
+│  │ [Install ▸] │  │ [Install ▸] │  │ [Install ▸] │           │
+│  └─────────────┘  └─────────────┘  └─────────────┘           │
+└──────────────────────────────────────────────────────────────┘</div>
+
+<h3>2.2 Install flow</h3>
+
+<div class="module-grid">
+<div class="module blue">
+<h3><span class="num">1</span>选择底座</h3>
+<div class="meta-line">Marketplace 上每个 agent 已标明推荐底座（claude / codex / hermes），install 时可换。</div>
+<ul>
+<li>检测本地是否已装该底座 CLI</li>
+<li>如未装，给安装命令（<code>brew install</code> / npm / curl）</li>
+<li>检测 OAuth token / API key 是否配置</li>
+</ul>
+</div>
+<div class="module blue">
+<h3><span class="num">2</span>绑定 accounter</h3>
+<div class="meta-line">默认 install 者自己当 accounter，可选他人。</div>
+<ul>
+<li>下拉选 workspace member</li>
+<li>非 self → 给对方发 invite，待 accept</li>
+<li>Service agent install → accounter 必须是 service_agent_admin</li>
+</ul>
+</div>
+<div class="module blue">
+<h3><span class="num">3</span>挂载 memory pointer</h3>
+<div class="meta-line">Skill 和 memory 不是 install 一次拷一份，是<strong>挂 pointer</strong>到 marketplace 上游。</div>
+<ul>
+<li>Skill bundle = git ref + path</li>
+<li>Memory template = 上游 hash + 本地 fork 时机</li>
+<li>上游 update 时 accounter 收到 "upstream changed, review?" 通知</li>
+</ul>
+</div>
+<div class="module blue">
+<h3><span class="num">4</span>初始化</h3>
+<div class="meta-line">Daemon 收到 install event → 准备 memory 目录 → 同步 skill → 注入底座配置。</div>
+<ul>
+<li>等价 v3 §5.4 描述的 "底座统一注入 hook"</li>
+<li>Install 完后 agent 进入 paused state，accounter approve 才 active</li>
+</ul>
+</div>
+</div>
+
+<h3>2.3 Marketplace 数据 schema 草案</h3>
+
+<pre><code>CREATE TABLE agent_template (
+  id            UUID PRIMARY KEY,
+  slug          TEXT UNIQUE NOT NULL,          -- 'deploy-bot'
+  name          TEXT NOT NULL,
+  description   TEXT,
+  category      TEXT,                          -- 'devops' | 'review' | ...
+  default_provider TEXT NOT NULL,              -- 'claude' | 'codex' | 'hermes'
+  skill_bundle_ref TEXT NOT NULL,              -- git ref or 'workspace://skills/deploy'
+  memory_template_ref TEXT,                    -- 可空，初始 memory 来源
+  recommended_permission_mode TEXT DEFAULT 'user_equivalent',
+  published_by  UUID REFERENCES "user"(id),
+  published_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  install_count INT NOT NULL DEFAULT 0,
+  avg_rating    NUMERIC(2,1)
+);
+
+-- 一个 agent install 是 agent_template 的一个 instance
+ALTER TABLE agent ADD COLUMN template_id UUID REFERENCES agent_template(id);
+ALTER TABLE agent ADD COLUMN template_version_pinned TEXT;  -- 上游版本</code></pre>
+
+<div class="callout success">
+<span class="callout-title">为什么用 pointer 而不是 copy</span>
+<strong>Skill 用 pointer</strong>（git ref / workspace skill path）：上游修了 skill，所有 install 自动跟（或者 accounter approve 后跟）。<strong>Memory 用 fork pointer</strong>：install 时取 upstream 当前 snapshot 作为初始 memory，之后是 agent 自己的，跟 upstream 不再同步 — 因为 memory 是 agent identity 的一部分（v3 INV-2）。
+</div>
+
+<h3>2.4 To-do 优先级</h3>
+
+<ul>
+<li><span class="tag tag-must">MUST</span> Marketplace 主页 + install flow + agent_template schema</li>
+<li><span class="tag tag-must">MUST</span> 一键 install / uninstall API + UI</li>
+<li><span class="tag tag-should">SHOULD</span> Skill 上游变更 → accounter 通知</li>
+<li><span class="tag tag-should">SHOULD</span> Install count / rating（4-5 颗星，员工标）</li>
+<li><span class="tag tag-could">COULD</span> Agent 之间的依赖关系 (DeployBot 调用 SmokeBot)</li>
+<li><span class="tag tag-later">LATER</span> 跨 workspace marketplace（公司多 workspace 时）</li>
+</ul>
+
+<!-- ============================ -->
+<h2 class="green">3. Accounter UI — 怎么 assign / transfer / digest / approve</h2>
+
+<p>Accounter 是 v3 INV-4 的核心。但"accounter 这个概念"要落到具体 UI 上才有用。四个关键交互页面：</p>
+
+<div class="module-grid">
+
+<div class="module green">
+<h3>3.1 设置 / 转移 accounter</h3>
+<ul>
+<li>Agent 创建表单：accounter 字段下拉，默认 self，搜索任何 member</li>
+<li>选他人 → 自动发 invite 卡片到对方 inbox → "你被 @alice 提名为 DeployBot 的 accounter，接受？"</li>
+<li>Transfer：当前 accounter 在 agent profile 点 "Transfer accountability" → 选新人 → 新人 accept → 旧 accounter 自动降为 contributor（如果想保留）</li>
+</ul>
+</div>
+
+<div class="module green">
+<h3>3.2 Accounter inbox</h3>
+<ul>
+<li>跟 Linear inbox 同结构，独立 tab "Agents I own"</li>
+<li>三个 stream：<br>
+  <strong>● Pending approval</strong> — intrusive iteration request<br>
+  <strong>● Halted action</strong> — intrusive filter 拦截，等 approve<br>
+  <strong>● Anomaly</strong> — OTel 检测到异常 pattern</li>
+<li>Bulk action: select N + approve / reject</li>
+</ul>
+</div>
+
+<div class="module green">
+<h3>3.3 Weekly digest</h3>
+<ul>
+<li>每周一早 8 点 push 邮件 / 飞书</li>
+<li>内容：<br>
+  你的 N 个 agent 这周做了 M 次 task<br>
+  K 次 intrusive event（按严重度排）<br>
+  Top 3 frequently halted tools<br>
+  上游 skill template 有 3 个更新</li>
+<li>每个 entry 1-click 跳到 OTel dashboard</li>
+</ul>
+</div>
+
+<div class="module green">
+<h3>3.4 离职 / orphan 处理</h3>
+<ul>
+<li>HR disable user → 触发 cascade：该 user 是 accounter 的所有 agent 进入 paused state</li>
+<li>Workspace admin 收到通知 + 7 天 grace</li>
+<li>Admin 可批量 reassign 给新人</li>
+<li>过期 auto-archive，OTel audit 永久保留</li>
+<li>Service agent orphan 必须 manual 处理（不能 auto-archive，因为有 elevated access）</li>
+</ul>
+</div>
+
+</div>
+
+<h3>3.5 Approval workflow 时序图</h3>
+
+<div class="mockup">User (proposer)        Server                  Accounter
+     │                     │                        │
+     │── propose iter ────→│                        │
+     │   diff: skill_add   │                        │
+     │                     │                        │
+     │                     │── notify (sync push) ─→│
+     │                     │                        │
+     │                     │                        │ review diff
+     │                     │                        │ check audit history
+     │                     │←─── decide(approve) ───│
+     │                     │                        │
+     │                     │── apply diff to agent ─│
+     │                     │── memory_hash bump ────│
+     │                     │── notify daemons ──────│
+     │←── notify (done) ───│                        │
+     │                     │                        │</div>
+
+<!-- ============================ -->
+<h2 class="amber">4. Memory 基础设施 — 底座 native memory × Alice memory</h2>
+
+<p>v3 §5 讲了 Alice agent memory 的设计。这里补<strong>三个底座 (Claude / Codex / Hermes) 自己写的 memory</strong> 怎么和 Alice memory 关联 — 这一块 v3 没展开。</p>
+
+<div class="callout warn">
+<span class="callout-title">底座自带 memory 系统的事实</span>
+Claude 会写 <code>~/.claude/projects/&lt;hash&gt;/memory/MEMORY.md</code>（auto memory feature）。Codex 写 <code>~/.codex/sessions/*.jsonl</code> 和 instructions。Hermes 类似。<strong>这些是底座视角的 memory</strong>，跟 Alice agent identity 的 memory（v3 §5 的 <code>~/.alice/agents/&lt;id&gt;/memory/</code>）是<strong>不同 source</strong>。
+</div>
+
+<h3>4.1 三层 memory 关系</h3>
+
+<table>
+<tr><th>层级</th><th>来源</th><th>归属</th><th>是否 source of truth</th><th>Alice 怎么处理</th></tr>
+<tr>
+  <td>🧠 Model weights</td>
+  <td>底座厂商训练</td>
+  <td>底座</td>
+  <td class="bad">否（黑盒）</td>
+  <td>不可控，A6 假设承认</td>
+</tr>
+<tr>
+  <td>💬 Conversation state</td>
+  <td>当前 task 对话历史</td>
+  <td>底座 jsonl 文件</td>
+  <td class="mid">短期（per session）</td>
+  <td>通过 sessionID + PriorWorkDir resume，已有</td>
+</tr>
+<tr>
+  <td>📝 Native auto-memory</td>
+  <td>底座自动学的（Claude MEMORY.md, Codex auto-instructions）</td>
+  <td>底座 home dir</td>
+  <td class="bad">否 — 不可信</td>
+  <td><strong>每 task 启动 review，accounter approve 才 import 到 Alice memory</strong></td>
+</tr>
+<tr>
+  <td>📚 Alice agent memory</td>
+  <td>accounter approve 的写入</td>
+  <td><code>~/.alice/agents/&lt;id&gt;/memory/</code></td>
+  <td class="good">是</td>
+  <td>v3 §5 已描述，文件系统 + sync engine broker</td>
+</tr>
+</table>
+
+<h3>4.2 Native memory → Alice memory 的 import flow</h3>
+
+<div class="mockup">Task 完成
+  │
+  ├─→ daemon 扫描底座 home dir（per-task CODEX_HOME / claude session dir）
+  │   提取这次 task 期间 native auto-memory 的 diff
+  │
+  ├─→ daemon 生成 "memory candidate" 卡片
+  │   { 底座建议记住: "项目 X 用 conventional commits"
+  │     来源: claude auto-learned
+  │     置信度: medium }
+  │
+  ├─→ 自动 propose 给 accounter (kind=memory_write, auto_proposed=true)
+  │
+  └─→ accounter:
+      ├ approve → 进 Alice memory (~/.alice/agents/<id>/memory/observed-patterns.md)
+      ├ edit → 改完进 Alice memory
+      ├ reject → 丢弃，task 结束底座 native memory 也跟着 task workdir 销毁
+      └ ignore → 默认 reject</div>
+
+<div class="callout danger">
+<span class="callout-title">关键约束</span>
+底座 native auto-memory <strong>跨 task 不持久</strong> — task 结束 daemon 清掉 per-task home。这意味着如果 accounter 不 approve，那条"学到的"东西就丢了。这是有意的 — <strong>反 memory poisoning 的核心防线</strong>。
+</div>
+
+<h3>4.3 To-do</h3>
+
+<ul>
+<li><span class="tag tag-must">MUST</span> Memory diff 提取器（claude / codex 各一个 adapter）</li>
+<li><span class="tag tag-must">MUST</span> 自动 memory candidate → iteration_request workflow</li>
+<li><span class="tag tag-should">SHOULD</span> Memory revert UI（git-style history per memory file）</li>
+<li><span class="tag tag-should">SHOULD</span> Memory poisoning detection — weekly LLM batch 扫 memory 看是否有矛盾 / 误导</li>
+<li><span class="tag tag-could">COULD</span> Memory export / import 跨 agent（"把 DeployBot 学到的 deploy preference 移到 SmokeBot"）</li>
+</ul>
+
+<!-- ============================ -->
+<h2 class="teal">5. Audit Observability — Dashboard / Anomaly / Cost</h2>
+
+<p>v3 §6 讲了 OTel + ClickHouse 后端。这里把<strong>消费者视角</strong>的功能列出来：accounter / superadmin 怎么用这套数据。</p>
+
+<div class="module-grid">
+
+<div class="module teal">
+<h3>5.1 Per-agent dashboard</h3>
+<div class="meta-line">每个 agent profile 内置一个 Grafana iframe / 自实现 panel。</div>
+<ul>
+<li>最近 100 个 action stream（real-time）</li>
+<li>每小时 tool call count + duration distribution</li>
+<li>Intrusive flag rate trend</li>
+<li>Top tools used（饼图）</li>
+<li>Recent halted action（红色 highlight）</li>
+</ul>
+</div>
+
+<div class="module teal">
+<h3>5.2 Accounter weekly digest</h3>
+<div class="meta-line">3.3 已述，触发 OTel query + 邮件 / 飞书 push。</div>
+<ul>
+<li>聚合：你 own 的 N 个 agent 这周 M 次 task</li>
+<li>异常事件按严重度排</li>
+<li>"如果你下周不在公司，谁能代理 approve"</li>
+</ul>
+</div>
+
+<div class="module teal">
+<h3>5.3 Superadmin global view</h3>
+<div class="meta-line">整个 workspace agent 行为的全景。</div>
+<ul>
+<li>Top 10 agent by intrusive event count</li>
+<li>Service agent access log（每月 review mandatory）</li>
+<li>跨 agent anomaly correlation（多 agent 同时段访问同一资源）</li>
+<li>Cost panel — model 调用 token 量、judge 调用次数、infra 成本拆分</li>
+</ul>
+</div>
+
+<div class="module teal">
+<h3>5.4 Cost tracking</h3>
+<div class="meta-line">Agent 数量爆炸 → 成本爆炸。要看见才能管。</div>
+<ul>
+<li>Per-agent: model tokens / judge calls / sandbox infra</li>
+<li>Per-accounter aggregate（accounter 看到自己 agent 的成本）</li>
+<li>Anomaly: 单 agent 单 task 成本 > p99</li>
+<li>Optional: budget alert per agent</li>
+</ul>
+</div>
+
+</div>
+
+<!-- ============================ -->
+<h2 class="orange">6. Intrusive Filter — 规则库 + LLM Judge 配置</h2>
+
+<p>v3 §7.2 讲了两层 filter 的思路（rule + LLM judge）。这里讲<strong>怎么管理规则、配置 judge、处理 false positive</strong>。</p>
+
+<h3>6.1 规则库 UI</h3>
+
+<div class="mockup">┌──────────────────────────────────────────────────────────────────┐
+│ Intrusive Filter Rules                          [+ New Rule]      │
+├──────────────────────────────────────────────────────────────────┤
+│ Severity │ Pattern              │ Action     │ Protects │ Status  │
+├──────────┼──────────────────────┼────────────┼──────────┼─────────┤
+│ Critical │ git push --force     │ Halt       │ P1       │ Active  │
+│ Critical │ DROP TABLE           │ Halt       │ P1       │ Active  │
+│ High     │ access tag=hr/finance│ Prompt acc │ P2       │ Active  │
+│ High     │ >50 issue per task   │ Halt       │ P1+P2    │ Active  │
+│ High     │ read ~/.ssh / ~/.aws │ Halt       │ P1       │ Active  │
+│ Medium   │ undeclared MCP call  │ Prompt acc │ P1       │ Active  │
+│ Medium   │ rate > 5σ baseline   │ Notify     │ P1       │ Active  │
+└──────────────────────────────────────────────────────────────────┘</div>
+
+<h3>6.2 规则编辑器</h3>
+
+<ul>
+<li>Pattern 类型：regex / structured (tool=X args contains Y) / semantic (LLM judge prompt)</li>
+<li>Severity: Critical / High / Medium / Low</li>
+<li>Action: Halt / Prompt accounter / Notify digest / Audit flag</li>
+<li>Protects: 必填 P1/P2/P3（v3 INV-1 优先级）</li>
+<li>Scope: 全局 / 某 agent template / 某 agent instance</li>
+<li>Exception list: 哪些 agent template 不走这条 rule（"DataAnalyst 允许 >50 issue 访问"）</li>
+</ul>
+
+<h3>6.3 LLM Judge 配置</h3>
+
+<table>
+<tr><th>配置项</th><th>默认</th><th>可调</th></tr>
+<tr><td>Judge model</td><td><code>claude-haiku-4-5</code></td><td>下拉切换底座 / model</td></tr>
+<tr><td>Trigger threshold</td><td>Layer 1 rule 没匹配但 args 含敏感关键词</td><td>关键词列表可编辑</td></tr>
+<tr><td>Cache TTL</td><td>24h per (agent_id, tool_name, args_signature)</td><td>1h–7d</td></tr>
+<tr><td>Fail-open scope</td><td>Critical pattern fail-close, 其他 fail-open</td><td>per-severity 配置</td></tr>
+<tr><td>Cost cap</td><td>$50/day per workspace</td><td>调高需 superadmin</td></tr>
+</table>
+
+<h3>6.4 False positive 处理</h3>
+
+<div class="callout info">
+<span class="callout-title">真实场景</span>
+"我让 DataAnalyst agent summarize last quarter 所有 bug" → halted by "&gt;50 issue per task" rule。Accounter 不应该 case-by-case unhalt，应该<strong>调整这个 agent 的 baseline</strong>。
+</div>
+
+<ul>
+<li><span class="tag tag-must">MUST</span> Per-agent baseline annotation（v3 已提）— accounter 在 agent profile 标"this agent allowed bulk"</li>
+<li><span class="tag tag-should">SHOULD</span> Halt 卡片 1-click "调整 rule" 跳到规则编辑器，预填例外</li>
+<li><span class="tag tag-could">COULD</span> ML 推荐 baseline — 系统观察 N 周后建议 "DataAnalyst p99 是 80 issues, 建议把 rule 阈值升到 100"</li>
+</ul>
+
+<!-- ============================ -->
+<h2 class="red">7. Service Agent 创建路径</h2>
+
+<p>v3 §7.3 描述了 service_agent_admin 角色 + co-sign。这里展开<strong>从想法到上线的完整 path</strong>。</p>
+
+<h3>7.1 创建步骤</h3>
+
+<div class="module-grid">
+
+<div class="module red">
+<h3><span class="num">1</span>提议（service_agent_admin 才能开始）</h3>
+<ul>
+<li>专门 entry point: <code>/admin/service-agents/new</code></li>
+<li>普通 user 看不到这个路径（403 不是 404，让他们知道有这个路径但需要权限）</li>
+<li>必填字段：name / accounter (必须 service_agent_admin) / 访问范围声明 / justification (free text 写进 audit)</li>
+</ul>
+</div>
+
+<div class="module red">
+<h3><span class="num">2</span>访问范围声明</h3>
+<ul>
+<li>显式列出能访问的资源集合："全公司 HR doc" / "tag=customer-feedback 的 issue" / "drive folder /finance/quarterly"</li>
+<li>这是<strong>唯一</strong>预先列 scope 的场景（INV-7 例外）</li>
+<li>声明范围之外的资源访问，filter 直接 halt</li>
+</ul>
+</div>
+
+<div class="module red">
+<h3><span class="num">3</span>Co-sign</h3>
+<ul>
+<li>另一个 service_agent_admin (或 superadmin) 进入 review</li>
+<li>看到完整提议 + justification</li>
+<li>同意 / 拒绝 / 建议修改范围</li>
+<li>UI 故意笨拙 — 多个 confirmation step + 警告文案</li>
+</ul>
+</div>
+
+<div class="module red">
+<h3><span class="num">4</span>上线</h3>
+<ul>
+<li>Service agent 进 active state</li>
+<li>UI 永久标 🛡 (chat / issue / agent list 都标)</li>
+<li>每次 response 自动 footer "this answer used elevated access via &lt;agent name&gt;"</li>
+<li>调用时弹 toast 告知 user "this agent reads beyond your normal access"</li>
+</ul>
+</div>
+
+</div>
+
+<h3>7.2 季度 review automation</h3>
+
+<ul>
+<li>Cron job 每季度第一周创建 review issue，assign 给所有 superadmin</li>
+<li>Issue 内容自动生成：<br>
+  当前 active service agent 列表<br>
+  每个 agent 这一季度访问次数 + scope 是否被超越<br>
+  Accounter 是否仍在职<br>
+  推荐 deprecation（>3 个月无 task / accounter 离职 / 异常 rate 高）</li>
+<li>Superadmin 必须 close issue 才算 review 完，逾期触发 escalation</li>
+</ul>
+
+<!-- ============================ -->
+<h2 class="pink">8. Issue × Agent 集成（v3 INV-3 落地）</h2>
+
+<p>"Agent 可以是 issue.assignee" 这件事在 UI 上要做<strong>很多小改动</strong>，单独成一节。</p>
+
+<h3>8.1 Assign 下拉</h3>
+
+<div class="mockup">Assign to:
+  ▾ Search: [ deploy ]
+    ─ Members ─────────────────────
+      @alice    Alice Chen
+      @bob      Bob Wang
+    ─ Agents ──────────────────────
+      🤖 DeployBot     accounter: @alice  ⚡ available
+      🛡 HRBot         service · @carol   ⚡ busy(2)
+      🤖 PRReviewer    accounter: @bob    ⚡ available</div>
+
+<ul>
+<li>Members + Agents 两组，Agent 用 🤖（regular）/ 🛡（service）区分</li>
+<li>每个 agent 展示 accounter（点击跳 accounter profile）</li>
+<li>"busy(N)" 显示 agent 当前并发 task 数</li>
+</ul>
+
+<h3>8.2 Agent 接到 issue 之后</h3>
+
+<ul>
+<li>Issue activity stream 开头出现 "🤖 DeployBot is working..." 卡片</li>
+<li>Cursor Plan Mode 风格：每个 step 展开 = tool call detail + 当前思考</li>
+<li>Sidebar 右侧 "Halt" 按钮，1-click 终止</li>
+<li>Block 时，agent 自动 @ accounter 或 issue creator："我需要 confirm 是否 push to main"</li>
+</ul>
+
+<h3>8.3 SLA / reporting</h3>
+
+<ul>
+<li>"assigned to me" inbox 含 agent 自驱的 issue（agent ≠ me，但 agent 的 accounter = me）</li>
+<li>Reporting：team velocity 区分 human-completed vs agent-completed</li>
+<li>Blame line：commit author = agent, accountable = agent.accounter</li>
+</ul>
+
+<!-- ============================ -->
+<h2 class="green">9. Phased Roadmap — 把所有模块串起来</h2>
+
+<p>v3 §10 列了 6 个 phase。这里把每个 phase 涉及的<strong>系统级模块</strong>标出来，方便你看 cross-cutting 依赖。</p>
+
+<table>
+<thead>
+<tr>
+  <th>Phase</th>
+  <th>主题</th>
+  <th>涉及模块</th>
+  <th>周期</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>P1</strong></td>
+  <td>Accounter + OTel</td>
+  <td>
+    <span class="tag tag-must">Role §1</span>
+    <span class="tag tag-must">Accounter UI §3</span>
+    <span class="tag tag-must">Observability §5</span>
+  </td>
+  <td>4 周</td>
+</tr>
+<tr>
+  <td><strong>P2</strong></td>
+  <td>Intrusive filter Layer 1</td>
+  <td>
+    <span class="tag tag-must">Filter rules §6.1-6.2</span>
+    <span class="tag tag-must">Halt UI</span>
+  </td>
+  <td>3 周</td>
+</tr>
+<tr>
+  <td><strong>P3</strong></td>
+  <td>Iteration workflow</td>
+  <td>
+    <span class="tag tag-must">Marketplace §2 (没 marketplace 主页，但有 install / publish API)</span>
+  </td>
+  <td>2 周</td>
+</tr>
+<tr>
+  <td><strong>P4</strong></td>
+  <td>Agent memory</td>
+  <td>
+    <span class="tag tag-must">Memory infra §4</span>
+    <span class="tag tag-must">Issue×Agent §8</span>
+  </td>
+  <td>5 周</td>
+</tr>
+<tr>
+  <td><strong>P5</strong></td>
+  <td>LLM-as-judge</td>
+  <td>
+    <span class="tag tag-must">Filter Layer 2 §6.3</span>
+    <span class="tag tag-should">Cost panel §5.4</span>
+  </td>
+  <td>3 周</td>
+</tr>
+<tr>
+  <td><strong>P6</strong></td>
+  <td>Service Agent</td>
+  <td>
+    <span class="tag tag-must">Service path §7</span>
+    <span class="tag tag-must">Quarterly review automation</span>
+  </td>
+  <td>3 周</td>
+</tr>
+<tr>
+  <td><strong>P7+</strong></td>
+  <td>Marketplace 完整 UI</td>
+  <td>
+    <span class="tag tag-should">§2 主页 / rating / search</span>
+    <span class="tag tag-later">跨 workspace marketplace</span>
+  </td>
+  <td>4 周</td>
+</tr>
+</tbody>
+</table>
+
+<!-- ============================ -->
+<h2 class="purple">10. Open questions</h2>
+
+<ol>
+<li>Marketplace 是 workspace-local 还是 org-global？前期建议 workspace-local，但公司多 workspace 时跨 workspace install 路径要早想</li>
+<li>Service agent 季度 review 没人在职处理怎么办？(superadmin 全部离职/请假) → 兜底机制</li>
+<li>Memory import 流程的 latency — accounter 不在线时，candidate 怎么 batch？积压几天的 candidate 怎么 review？</li>
+<li>Cost cap 超了之后是 fail-open 还是 fail-close？(agent 还能不能跑)</li>
+<li>规则编辑器的 RBAC — 谁能编辑 intrusive rule？superadmin only 还是 service_agent_admin 也行？</li>
+<li>Issue×Agent 集成时，agent 当 assignee 的 issue 在 search / filter / report 里默认 include 还是 exclude？</li>
+</ol>
+
+<!-- ============================ -->
+<h2 class="amber">附录 A — 跟 v3 设计稿的对应关系</h2>
+
+<table>
+<thead>
+<tr><th>本文档章节</th><th>v3 设计稿对应</th></tr>
+</thead>
+<tbody>
+<tr><td>§1 Role 体系</td><td>v3 INV-4 + INV-6 + §7.3</td></tr>
+<tr><td>§2 Marketplace</td><td>v3 没展开（这份是新增）</td></tr>
+<tr><td>§3 Accounter UI</td><td>v3 INV-4 + INV-5 + §7.4</td></tr>
+<tr><td>§4 Memory 基础设施</td><td>v3 §5（补底座 native memory 关系）</td></tr>
+<tr><td>§5 Observability</td><td>v3 §6 + INV-8</td></tr>
+<tr><td>§6 Intrusive filter UI</td><td>v3 INV-7 + §7.2</td></tr>
+<tr><td>§7 Service agent path</td><td>v3 §7.3 + INV-6</td></tr>
+<tr><td>§8 Issue × Agent</td><td>v3 INV-3 + §7.5</td></tr>
+</tbody>
+</table>
+
+<!-- giscus -->
+<h2 class="purple" style="margin-top:60px;">💬 Comments</h2>
+<p style="color:#666;font-size:13px;">用 GitHub 账号登录留言。讨论同步到 <a href="https://github.com/KafkaCat/alice-design-test/discussions">repo Discussions</a>。</p>
+
+<script src="https://giscus.app/client.js"
+        data-repo="KafkaCat/alice-design-test"
+        data-repo-id="R_kgDOSoTWvQ"
+        data-category="General"
+        data-category-id="DIC_kwDOSoTWvc4C94Cx"
+        data-mapping="pathname"
+        data-strict="0"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="top"
+        data-theme="light"
+        data-lang="zh-CN"
+        data-loading="lazy"
+        crossorigin="anonymous"
+        async>
+</script>
+
+<p style="margin-top:80px;text-align:center;color:#999;font-size:12px;">
+<a href="../../../">← 回索引</a> ·
+<a href="../permission-model/">v3 设计稿</a>
+</p>
+
+</body>
+</html>
