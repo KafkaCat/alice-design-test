@@ -291,7 +291,7 @@
 </div>
 
 <div class="stat-grid">
-  <div class="stat"><div class="num">3</div><div class="label">底座 (claude/codex/hermes)</div></div>
+  <div class="stat"><div class="num">11+</div><div class="label">底座（可扩展）</div></div>
   <div class="stat"><div class="num">2</div><div class="label">主流 OS (linux/mac)</div></div>
   <div class="stat"><div class="num">7</div><div class="label">隔离技术对比</div></div>
   <div class="stat"><div class="num">~4 mo</div><div class="label">完整 roadmap</div></div>
@@ -300,33 +300,37 @@
 <!-- ============================ -->
 <h2 class="orange">1. 现状摘要 — 隔离强度参差不齐</h2>
 
-<h3>1.1 每个底座 × 每个 OS 的真相</h3>
+<h3>1.1 底座是可扩展集合，sandbox 行为参差不齐</h3>
+
+<p>Alice 当前支持 11 个底座 CLI：<code>claude</code>、<code>codex</code>、<code>opencode</code>、<code>openclaw</code>、<code>hermes</code>、<code>gemini</code>、<code>pi</code>、<code>cursor</code>、<code>copilot</code>、<code>kimi</code>、<code>kiro</code>。底座注册是 declarative — 加新底座只是加一行 <code>probe()</code>。下面是每个底座 × OS 的实际隔离强度：</p>
 
 <table>
 <thead>
-<tr><th>底座</th><th>Linux 实际隔离</th><th>macOS 实际隔离</th><th>Windows</th></tr>
+<tr><th>底座（按 sandbox 成熟度分组）</th><th>Linux 实际隔离</th><th>macOS 实际隔离</th></tr>
 </thead>
 <tbody>
 <tr>
-  <td><strong>Codex</strong></td>
+  <td><strong>Codex</strong>（唯一有自带 sandbox 的）</td>
   <td class="good">✅ Landlock workspace-write + network_access (硬约束)</td>
   <td class="bad">❌ <strong>fallback 到 danger-full-access</strong> — Seatbelt bug (openai/codex#10390)</td>
-  <td class="na">N/A</td>
 </tr>
 <tr>
-  <td><strong>Claude</strong></td>
-  <td class="bad">❌ 无 OS sandbox，靠 per-tool approval</td>
-  <td class="bad">❌ 无 OS sandbox，靠 per-tool approval</td>
+  <td><strong>Claude</strong>（自带 per-tool approval，无 OS sandbox）</td>
+  <td class="bad">❌ 无 OS sandbox</td>
   <td class="bad">❌ 无 OS sandbox</td>
 </tr>
 <tr>
-  <td><strong>Hermes</strong></td>
-  <td class="bad">❌ 看不到 specific isolation 逻辑</td>
-  <td class="bad">❌ 同上</td>
-  <td class="na">N/A</td>
+  <td><strong>其他 9 个</strong>（opencode / openclaw / hermes / gemini / pi / cursor / copilot / kimi / kiro）</td>
+  <td class="bad">❌ 无 OS sandbox</td>
+  <td class="bad">❌ 无 OS sandbox</td>
 </tr>
 </tbody>
 </table>
+
+<div class="callout note">
+<span class="callout-title">扩展性原则</span>
+底座的 isolation 设计要做<strong>统一抽象</strong> — 不绑死特定列表。未来加任何新底座（注册一行 probe）都自动继承 sandbox / per-task home / memory pointer 这套机制。<strong>不应该为每个底座写 hardcoded isolation 逻辑</strong>。
+</div>
 
 <div class="callout danger">
 <span class="callout-title">⚠ 最严重的事实</span>
@@ -340,9 +344,9 @@
 <li><span class="tag tag-done">DONE</span> Per-task <code>CODEX_HOME</code>：避免 codex 看到系统级 <code>~/.codex/skills/</code></li>
 <li><span class="tag tag-done">DONE</span> Git worktree per task：repo 隔离</li>
 <li><span class="tag tag-done">DONE</span> Codex Linux 真 sandbox（Landlock）</li>
-<li><span class="tag tag-must">MISSING</span> Per-task <code>CLAUDE_HOME</code>：claude 仍能直接读写系统 <code>~/.claude/</code></li>
+<li><span class="tag tag-must">MISSING</span> Per-task home 隔离对其他 10 个底座（仅 codex 有 CODEX_HOME 机制，其他底座仍能读写系统目录）</li>
 <li><span class="tag tag-must">MISSING</span> macOS 真 sandbox</li>
-<li><span class="tag tag-must">MISSING</span> Cloud runtime 路径（之前 multica 留了 stub，现在 alice 已删）</li>
+<li><span class="tag tag-must">MISSING</span> Cloud runtime 路径</li>
 </ul>
 
 <!-- ============================ -->
@@ -527,9 +531,9 @@
 
 <h4>具体动作</h4>
 <ul>
-<li><strong>Claude</strong> 加 per-task <code>CLAUDE_HOME</code>，跟 codex 同思路（symlink 用户级 skills 进 per-task home + 拒绝系统目录）</li>
-<li><strong>Linux</strong>：Claude / Hermes 进程包一层 <strong>bubblewrap</strong> — 跟 codex Landlock 同强度但跨底座统一</li>
-<li><strong>macOS</strong>：写 sandbox-exec sbpl profile，apply 到 codex / claude / hermes 启动命令。接受 deprecated 风险作 best-effort</li>
+<li><strong>所有非 codex 底座</strong>加 per-task home 隔离（统一抽象），跟 codex CODEX_HOME 同思路（symlink 用户级 skills / config 进 per-task home + 拒绝系统目录）</li>
+<li><strong>Linux</strong>：除 codex 之外的 10 个底座统一用 <strong>bubblewrap</strong> 包一层 — 跟 codex Landlock 同强度但跨底座统一</li>
+<li><strong>macOS</strong>：写 sandbox-exec sbpl profile，apply 到所有底座启动命令。接受 deprecated 风险作 best-effort</li>
 <li><strong>Network</strong>：用 nftables (Linux) 或 LSP filter (Mac) 把 outbound 限到 allowlist。这层 daemon 启动时 setup，task 进程继承</li>
 </ul>
 
@@ -601,7 +605,7 @@
 <h4>实施顺序</h4>
 <ol>
 <li><strong>Phase 1</strong>: Path A 在 Linux 上把 Claude / Hermes 接 bubblewrap (4 周)</li>
-<li><strong>Phase 2</strong>: Path A 在 Mac 上写 sandbox-exec profile 给三个底座 (3 周)</li>
+<li><strong>Phase 2</strong>: Path A 在 Mac 上写 sandbox-exec profile 给所有底座 (3 周)</li>
 <li><strong>Phase 3</strong>: 加 Claude per-task <code>CLAUDE_HOME</code> (1 周)</li>
 <li><strong>Phase 4</strong>: Path B - e2b POC (单 service agent 跑通) (3 周)</li>
 <li><strong>Phase 5</strong>: Path B - 接到 service agent 全量 (2 周)</li>
@@ -766,7 +770,7 @@ sandbox-exec -f /tmp/alice-task-&lt;id&gt;.sb codex exec ...</code></pre>
 
 <h3>8.1 Daemon 启动 agent 的统一抽象</h3>
 
-<pre><code>// 不管底座是 codex / claude / hermes，daemon 用同一个 sandbox 包装
+<pre><code>// 不管底座是 11 个里的哪一个（或未来新增的），daemon 用同一个 sandbox 包装
 type RuntimeSandbox interface {
     Wrap(cmd *exec.Cmd, policy SandboxPolicy) error
 }
@@ -794,24 +798,19 @@ func NewSandbox(os string) RuntimeSandbox {
     }
 }</code></pre>
 
-<h3>8.2 三个底座如何被包</h3>
+<h3>8.2 所有底座如何被包</h3>
 
 <table>
-<tr><th>底座</th><th>当前启动方式</th><th>加 sandbox 后</th></tr>
+<tr><th>底座类别</th><th>当前启动方式</th><th>加 sandbox 后</th></tr>
 <tr>
-  <td>Codex</td>
+  <td><strong>Codex</strong>（自带 sandbox）</td>
   <td><code>codex exec ...</code> 用 codex 自带 Seatbelt/Landlock</td>
   <td>外层加一层 sandbox 兜底 — codex 自己的内层 sandbox 仍 active 作为冗余</td>
 </tr>
 <tr>
-  <td>Claude</td>
-  <td><code>claude -p ...</code> 无 sandbox</td>
-  <td>外层 sandbox = 唯一防御。Linux bwrap / Mac sandbox-exec 启动</td>
-</tr>
-<tr>
-  <td>Hermes</td>
-  <td>具体启动方式 daemon 已知</td>
-  <td>同 Claude 路径</td>
+  <td><strong>其他所有底座</strong>（claude / opencode / openclaw / hermes / gemini / pi / cursor / copilot / kimi / kiro / 未来新增）</td>
+  <td>各自 CLI 启动，无 OS sandbox</td>
+  <td>外层 sandbox = 唯一防御。Linux bwrap / Mac sandbox-exec 启动，<strong>所有底座走同一抽象</strong></td>
 </tr>
 </table>
 
@@ -901,7 +900,7 @@ ISO-3 白盒原则要求 user / owner 永远知道 agent 在哪。Agent profile 
     + 加 per-task <code>CLAUDE_HOME</code> (跟 CODEX_HOME 同思路)
   </td>
   <td>4 周</td>
-  <td>Linux 上三个底座都有 filesystem 真隔离</td>
+  <td>Linux 上所有底座都有 filesystem 真隔离</td>
 </tr>
 <tr>
   <td><strong>R2</strong></td>
@@ -911,7 +910,7 @@ ISO-3 白盒原则要求 user / owner 永远知道 agent 在哪。Agent profile 
     Claude / Hermes 同样包装
   </td>
   <td>3 周</td>
-  <td>Mac 上三个底座有 filesystem + 基础 network 隔离</td>
+  <td>Mac 上所有底座有 filesystem + 基础 network 隔离</td>
 </tr>
 <tr>
   <td><strong>R3</strong></td>

@@ -303,7 +303,19 @@
 <!-- ============================ -->
 <h2 class="indigo">2. 设计原点 — Drive 怎么融入主设计</h2>
 
-<p>下面 5 条 invariant 是 主设计模型在 drive 这个领域的延伸。每条都对应 主设计的某条 invariant，但具体到 drive 这个 domain。</p>
+<p>下面 6 条 invariant 是主设计模型在 drive 这个领域的延伸。每条都对应主设计的某条 invariant，但具体到 drive 这个 domain。</p>
+
+<!-- ----- DRV-0 ----- -->
+<div class="invariant critical">
+<h3><span class="inv-tag critical">DRV-0</span>Sensitive data 通过 workspace 隔离，不靠 file-level ACL</h3>
+<p><strong>陈述</strong>：HR / 财务 / 法务 / 客户合同 / 未发布产品这类敏感数据，当前阶段的主防线是<strong>把它放到独立 workspace</strong>。Workspace 是 hard wall — agent / user 跨 workspace 默认完全不可达。Workspace 内部走轻量 ReBAC，default 倾向 transparency。</p>
+<p><strong>含义</strong>：</p>
+<ul>
+<li>需要保密的 drive 内容 → 创建独立 workspace（如 <code>hr-workspace</code>、<code>finance-workspace</code>），只对相关员工 grant member</li>
+<li>同 workspace 内部不做 file-level ACL，只做 space-level + team-level 区分</li>
+<li>Agent 跟 user 一样受 workspace hard wall 约束，没有特例</li>
+</ul>
+</div>
 
 <!-- ----- DRV-1 ----- -->
 <div class="invariant critical">
@@ -311,7 +323,7 @@
 <p><strong>陈述</strong>：网盘里的文件 99% 是"公司数字资产"（合同 / 设计稿 / 代码备份 / 客户数据 / 财务）。按 INV-1 优先级，drive 是 <span class="priority-pill p1">P1</span> 第一优先保护对象，跟 git push / DROP TABLE 同级。</p>
 <p><strong>含义</strong>：</p>
 <ul>
-<li>所有 drive read/write 走 OTel 全量 audit（INV-8）</li>
+<li>所有 drive read/write 走全量 audit（INV-8，发到独立 audit 工具）</li>
 <li>Intrusive filter 在 drive read 维度有特殊 rule：批量下载 / 跨 space 访问 / agent 读未声明 path 都属于 intrusive</li>
 <li>Drive 的 default ACL 比 issue/chat 更紧 — 默认 private space，需要显式 share 到 team/workspace</li>
 </ul>
@@ -343,8 +355,8 @@ File 多 = 几千几万。Per-file ACL = 维护噩梦 + UI 灾难 + 心智负担
 
 <!-- ----- DRV-3 ----- -->
 <div class="invariant">
-<h3><span class="inv-tag">DRV-3</span>Drive 权限通过<strong>关系图</strong>表达（隐式 ReBAC）</h3>
-<p><strong>陈述</strong>：用户能否访问一个 file，<strong>不只看 drive_space_member 直接 ACL</strong>，要走完整的关系图。这跟 主设计 §3 "Alice 当前是隐式 ReBAC" 一致 — drive 接入同一关系网。</p>
+<h3><span class="inv-tag">DRV-3</span>Drive 权限走 ReBAC 关系图（含 team 维度）</h3>
+<p><strong>陈述</strong>：用户能否访问一个 file，<strong>不只看 drive_space_member 直接 ACL</strong>，要走完整的关系图。这跟主设计的轻量 ReBAC 一致 — drive 接入同一关系网，包括 <strong>team 关系</strong>（team 是同 workspace 内细分可见性的机制）。</p>
 
 <h4>访问路径有 4 种</h4>
 
@@ -367,7 +379,8 @@ user ─[can_view]→ issue ←[references]── file (in any space)           
 <p><strong>具体规则</strong>：</p>
 <ul>
 <li>Agent 默认能访问的 = owner 能访问的 ∩ 当前 caller 能访问的（user_equivalent mode）</li>
-<li>Service mode agent 可以有额外 space membership（admin 声明）</li>
+<li><strong>Agent 跟 user 一样受 team 边界约束</strong> — caller 不在 team T，调用的 agent 也不能访问 team T 内的 file</li>
+<li>Service mode agent 可以有额外 space membership（admin 声明），但仍受 workspace hard wall 约束</li>
 <li>Agent 上传文件时 source_type='agent_output'，default folder 是 agent 自己的输出空间</li>
 <li>Agent 产出的文件 created_by_type='agent', created_by_id=agent.id，但 audit log 记录 owner</li>
 </ul>
@@ -375,10 +388,10 @@ user ─[can_view]→ issue ←[references]── file (in any space)           
 
 <!-- ----- DRV-5 ----- -->
 <div class="invariant">
-<h3><span class="inv-tag">DRV-5</span>所有 drive access 走 OTel 全量 audit</h3>
-<p><strong>陈述</strong>：每次 file read / write / delete / share 都写 OTel span。包括 signed URL 的生成（拿了 URL 就视为 access，无论是否真下载）。</p>
+<h3><span class="inv-tag">DRV-5</span>所有 drive access 全量 audit，发到独立 audit 工具</h3>
+<p><strong>陈述</strong>：每次 file read / write / delete / share 都写 audit event。包括 signed URL 的生成（拿了 URL 就视为 access，无论是否真下载）。</p>
 
-<p>跟 INV-8 一致 — audit-over-ACL，不在业务 DB 写。Drive 是 P1 资产 → audit fail-close（写 audit 失败 = 拒绝 access）</p>
+<p>跟 INV-8 一致 — audit-over-ACL，发到独立 audit 工具（Graylog / OpenSearch 类），不写业务 DB。Drive 是 P1 资产 → audit fail-close（写 audit 失败 = 拒绝 access）。</p>
 </div>
 
 <!-- ============================ -->
@@ -454,7 +467,7 @@ user ─[can_view]→ issue ←[references]── file (in any space)           
 <li>Agent 通过 X-Agent-ID + X-Task-ID 走 resolveActor，identity 是 agent</li>
 <li>权限 check：agent.permission_mode='user_equivalent' → 检查 (a) caller user 能读吗 (b) agent 自己作为 subject 能读吗 — 两个都通过才放行</li>
 <li>service mode → 检查 service 声明范围里是否包含此 space</li>
-<li>OTel audit 写：agent_id, owner, caller, file_id, space_id</li>
+<li>Audit 写：agent_id, owner, caller, file_id, space_id</li>
 </ul>
 </div>
 
@@ -596,26 +609,28 @@ canReadFile(user, file) bool
 </table>
 
 <!-- ============================ -->
-<h2 class="purple">8. OTel audit schema (drive 维度)</h2>
+<h2 class="purple">8. Audit event schema (drive 维度)</h2>
 
-<p>所有 drive 操作发 OTel span，attribute schema：</p>
+<p>所有 drive 操作发 audit event 到独立 audit 工具（Graylog / OpenSearch）：</p>
 
-<pre><code>span.name = "drive.{operation}"  // read / write / move / delete / reference / signed_url
-span.attributes:
-  workspace.id        UUID
-  agent.id            UUID  (可空 — 不是 agent 调用时)
-  agent.owner     UUID  (可空)
-  caller.user_id      UUID  (resolveActor 的 user)
-  file.id             UUID
-  file.size_bytes     int64
-  space.id            UUID
-  space.kind          string
-  operation           string  // 同 span.name 后缀
-  outcome             string  // success | denied | halted | error
-  intrusive.flags     []string
-  reference.target_type string  (可空)
-  reference.target_id   UUID    (可空)
-  judge.verdict       string  (可空 — Layer 2 judge 时)</code></pre>
+<pre><code>{
+  "ts":             "2026-05-27T...",
+  "operation":      "drive.read|write|move|delete|reference|signed_url",
+  "workspace_id":   "...",
+  "agent_id":       "...",          // 可空 — 不是 agent 调用时
+  "agent_owner":    "...",          // 可空
+  "caller_user_id": "...",
+  "file_id":        "...",
+  "file_size_bytes": 123456,
+  "space_id":       "...",
+  "space_kind":     "workspace|team|private|agent_output",
+  "team_id":        "...",          // 可空 — kind=team 时
+  "outcome":        "success|denied|halted|error",
+  "intrusive_flags": ["..."],
+  "reference_target_type": "...",   // 可空
+  "reference_target_id":   "...",   // 可空
+  "judge_verdict":  "..."           // 可空 — Layer 2 judge 时
+}</code></pre>
 
 <p>消费端：</p>
 
@@ -660,11 +675,11 @@ span.attributes:
   <td><strong>D3</strong></td>
   <td>
     <ul>
-      <li>OTel audit 集成（drive 维度的 span attribute）</li>
+      <li>Audit 集成（drive 维度的 span attribute）</li>
       <li>per-file access log UI</li>
     </ul>
   </td>
-  <td>系统 §5 OTel pipeline (Phase 1)</td>
+  <td>系统 §9 Audit pipeline (Phase 1)</td>
   <td>1 周</td>
 </tr>
 <tr>
@@ -728,7 +743,7 @@ span.attributes:
 <tr><td>DRV-2 无 file ACL</td><td>INV-7</td><td>§6 Intrusive filter</td></tr>
 <tr><td>DRV-3 ReBAC 关系图</td><td>主设计 §3 ReBAC</td><td>—</td></tr>
 <tr><td>DRV-4 Agent first-class</td><td>INV-3</td><td>§8 Issue×Agent</td></tr>
-<tr><td>DRV-5 全量 OTel audit</td><td>INV-8</td><td>§5 Observability</td></tr>
+<tr><td>DRV-5 全量 Audit</td><td>INV-8</td><td>§5 Observability</td></tr>
 <tr><td>§3 四种 space kind</td><td>—</td><td>—（drive 独有）</td></tr>
 <tr><td>§7 drive intrusive rule</td><td>主设计 §7.2</td><td>§6 规则库</td></tr>
 </tbody>

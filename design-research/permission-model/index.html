@@ -345,14 +345,14 @@
 <div class="invariant">
 <h3><span class="inv-tag">INV-5</span>Intrusive iteration requires owner approval</h3>
 
-<p><strong>陈述</strong>：Agent 的 <em>intrusive 修改</em>（prompt / skill / capability / model 切换 / memory write）必须由 owner approve。非 intrusive 的修改（描述文案、标签、UI 颜色）可以任何 contributor 直接改。</p>
+<p><strong>陈述</strong>：Agent 的 <em>intrusive 修改</em>（prompt / skill / MCP server / model 切换 / permission_mode / owner transfer）必须由 owner approve。非 intrusive 的修改（描述文案、标签、UI 颜色）和日常 memory 写入（模型自决定）不需要 owner 介入。Owner 只管真正改变 agent 行为基线的变更。</p>
 
 <h4>业界对照</h4>
 <p>这是 <strong>GitHub Pull Request workflow</strong> 应用到 agent。Code repo 用 CODEOWNERS + branch protection 实现"intrusive 修改必须 owner approve"；Alice 把 agent 当成可迭代的"软件 artifact"，用同形态 workflow。</p>
 
-<h4>Intrusive vs non-intrusive 分类（初稿）</h4>
+<h4>Intrusive vs non-intrusive 分类</h4>
 <table>
-<tr><th>Intrusive（需 owner approve）</th><th>Non-intrusive（自由 iterate）</th></tr>
+<tr><th>Intrusive（需 owner approve）</th><th>Non-intrusive（自由 iterate / 模型自决定）</th></tr>
 <tr>
 <td class="bad">
 <ul>
@@ -362,7 +362,7 @@
 <li>切换 model provider 或 model</li>
 <li>修改 permission_mode（user_equivalent → service）</li>
 <li>修改 owner（当前 owner approve + admin co-sign）</li>
-<li>写入 agent execution memory</li>
+<li>Agent 调用 critical tool (DROP / git push --force / rm -rf)</li>
 </ul>
 </td>
 <td class="good">
@@ -371,6 +371,7 @@
 <li>Tag / category</li>
 <li>UI 颜色、icon</li>
 <li>使用统计、调用次数（自动累积）</li>
+<li>日常 memory 写入（模型自决定，写 audit）</li>
 <li>Audit log（自动写入，不可改）</li>
 </ul>
 </td>
@@ -382,7 +383,7 @@
 <div class="invariant">
 <h3><span class="inv-tag">INV-6</span>Permission default = user-equivalent; elevated agent = role-gated exception</h3>
 
-<p><strong>陈述</strong>：Agent 默认 <code>permission_mode = user_equivalent</code>（agent 能看到 ≤ 当前 caller ACL）。少数 <code>permission_mode = service</code>（agent 能看到 caller 看不到的）需要 <code>service_agent_admin</code> role 创建 + admin approval。</p>
+<p><strong>陈述</strong>：Agent 默认 <code>permission_mode = user_equivalent</code>（agent 能看到 ≤ 当前 caller ACL）。少数 <code>permission_mode = service</code>（agent 能看到 caller 看不到的）需要 <code>admin</code> role 创建 + co-sign approval。</p>
 
 <table>
 <tr><th>Mode</th><th>Permission 来源</th><th>类比</th><th>Audit 要求</th></tr>
@@ -401,7 +402,7 @@
 </table>
 
 <div class="insight">
-<strong>Service mode 是 confused deputy 的合法形态</strong>，但 Alice 用<strong>角色门控</strong>而非"任何人都能开"。具体见 §4.6 — 新增 <code>service_agent_admin</code> role。
+<strong>Service mode 是 confused deputy 的合法形态</strong>，但 Alice 用<strong>角色门控</strong>而非"任何人都能开"。具体角色定义和创建流程见系统级功能 doc 的 service agent 章节。
 </div>
 </div>
 
@@ -436,9 +437,9 @@
 
 <!-- ----- INV-8 ----- -->
 <div class="invariant critical">
-<h3><span class="inv-tag critical">INV-8</span>Audit-over-ACL — 全量 audit，独立 observability 管道</h3>
+<h3><span class="inv-tag critical">INV-8</span>Audit-over-ACL — 全量 audit，专用 audit 工具，跟应用观测分离</h3>
 
-<p><strong>陈述</strong>：所有 agent action 全量 audit，<strong>通过独立 observability 管道（OpenTelemetry / sidecar）发到专门后端</strong>，不写业务 DB。当前阶段不做强权限限制；先把 transparency 做到 100%，再倒推哪些 pattern 需要前置拦截。</p>
+<p><strong>陈述</strong>：所有 agent action 全量 audit，<strong>通过专用 audit 工具（Graylog / OpenSearch 等带 UI 的开源方案）管理</strong>，跟应用观测 (APM / metrics / error tracking) 完全分离。当前阶段不做强权限限制；先把 transparency 做到 100%，再倒推哪些 pattern 需要前置拦截。</p>
 
 <h4>业界对照</h4>
 
@@ -465,55 +466,75 @@
 </div>
 
 <!-- ============================ -->
-<h2 id="rebac" class="indigo">3. ReBAC — Alice <strong>已经是隐式 ReBAC</strong></h2>
+<h2 id="rebac" class="indigo">3. 授权模型 — Workspace 是强边界，内部走轻量 ReBAC</h2>
 
 <h3>3.1 ReBAC 是什么</h3>
 
-<p>Relationship-Based Access Control，Google Zanzibar 范式。基本数据单元是 tuple <code>&lt;object&gt;#&lt;relation&gt;@&lt;subject&gt;</code>，例如 <code>doc:123#editor@user:alice</code> 或 <code>team:eng#member@user:bob</code>。权限 check 退化为 graph 可达性查询。</p>
+<p>Relationship-Based Access Control（Google Zanzibar 范式）。基本数据单元是 tuple <code>&lt;object&gt;#&lt;relation&gt;@&lt;subject&gt;</code>，例如 <code>doc:123#editor@user:alice</code> 或 <code>team:eng#member@user:bob</code>。权限 check 退化为 graph 可达性查询。</p>
 
 <p>RBAC 关注 "user 有什么 role"；ABAC 关注 "user 和 resource 的 attribute 怎么匹配"；ReBAC 关注 "user 和 resource 之间有什么关系链"。</p>
 
-<h3>3.2 Alice 当前实际上已经在做 ReBAC，只是没用 Zanzibar 那套术语</h3>
+<h3>3.2 Alice 采用 ReBAC，但 by design 走轻量路径</h3>
 
-<p>看 <code>server/internal/policy/issue_visibility.go</code> + <code>server/internal/middleware/workspace.go</code> 的实际逻辑：</p>
+<p>Alice 的授权机制本质就是 ReBAC — <code>server/internal/policy/issue_visibility.go</code> 已经在做 graph traversal，关系建在 <code>member</code> / <code>team_member</code> 等业务表里：</p>
 
 <pre><code>CanViewIssue(user, issue):
-    1. is_workspace_member(user, issue.workspace)          # member 关系
+    1. is_workspace_member(user, issue.workspace)
     2. if issue.team_id is null: return true
     3. if team.visibility == 'public': return true
-    4. return is_team_member(user, issue.team_id)          # team_member 关系
+    4. return is_team_member(user, issue.team_id)
 </code></pre>
 
-<p>这就是 graph traversal — user 到 issue 之间的可达路径决定可见性。关系的数据载体是 <code>member</code> + <code>team_member</code> 表，不是 Zanzibar 的 tuple store。但<strong>语义上是 ReBAC 的</strong>。</p>
+<p>这是 graph traversal — user 到 issue 之间的可达路径决定可见性。<strong>设计选择：保留 ReBAC 的关系思想，但不引入专门的关系存储引擎（SpiceDB / OpenFGA）</strong>。原因是 alice 的关系图复杂度低，关系直接建在业务表足够，专门存储引擎是 over-engineering。</p>
 
-<div class="insight">
-<strong>区分两件事</strong>：(a) ReBAC 作为<em>授权思想</em>（关系决定权限）；(b) Zanzibar/SpiceDB/OpenFGA 作为<em>关系存储引擎</em>。Alice 用 (a) 不用 (b)。这是正确的选择 — Alice 关系图复杂度低，没有 Drive 那种 N-level folder 继承，专门的关系存储引擎是 over-engineering。
+<h3>3.3 两层授权边界</h3>
+
+<div class="callout danger">
+<span class="callout-title">边界 1：Workspace 是<strong>强边界</strong>（hard wall）</span>
+跨 workspace 默认<strong>完全不可达</strong> — 不论 user / agent / drive / issue / memory。所有敏感数据（HR、财务、客户隐私、未发布产品）<strong>暂时通过分配到不同 workspace 实现隔离</strong>，而不是通过 workspace 内部的细粒度 ACL。这是当前阶段最简单且最稳的隐私保护方式。
 </div>
 
-<h3>3.3 推广到 Agent 的 ReBAC 关系图</h3>
+<div class="callout success">
+<span class="callout-title">边界 2：Workspace 内部走<strong>轻量 ReBAC + 强 transparency</strong></span>
+同一 workspace 内部，default 倾向<strong>透明可见</strong>。Team 表达"哪些 member 看哪些 issue / project"，但 team 不是强加密边界 —— 它是组织视图。Workspace 内 audit / transparency 是优先于强 ACL 的设计选择。
+</div>
 
-<p>把 agent 接进现有 ReBAC 关系图：</p>
+<h3>3.4 关系图节点：member / team / agent / workspace</h3>
+
+<p>Alice 的关系图当前包含以下 first-class node：</p>
 
 <table>
-<tr><th>关系 tuple（语义）</th><th>数据载体</th><th>含义</th></tr>
-<tr><td><code>agent:X#owner@user:Y</code></td><td><code>agent.owner_user_id</code></td><td>Y 对 agent X 的行为负责</td></tr>
-<tr><td><code>agent:X#contributor@user:Y</code></td><td>新表 <code>agent_contributor(agent_id, user_id)</code></td><td>Y 可以 propose iteration（不能直接 apply）</td></tr>
-<tr><td><code>agent:X#member_of@workspace:W</code></td><td><code>agent.workspace_id</code></td><td>agent X 属于 workspace W</td></tr>
-<tr><td><code>issue:I#delegated_to@agent:X</code></td><td><code>issue.assignee = agent X</code>（既 assignee 又 delegate，见 INV-3）</td><td>agent X 在做 I</td></tr>
-<tr><td><code>service_agent_admin:user:Y</code></td><td><code>user.is_service_agent_admin</code></td><td>Y 可以创建 service agent</td></tr>
+<tr><th>关系 tuple</th><th>数据载体</th><th>语义</th></tr>
+<tr><td><code>workspace:W#member@user:U</code></td><td><code>member</code> 表</td><td>U 是 W 的成员</td></tr>
+<tr><td><code>team:T#member@user:U</code></td><td><code>team_member</code> 表</td><td>U 是 team T 的成员（同 workspace 内细分可见性）</td></tr>
+<tr><td><code>issue:I#in_team@team:T</code></td><td><code>issue.team_id</code></td><td>issue I 属于 team T</td></tr>
+<tr><td><code>agent:A#owner@user:U</code></td><td><code>agent.owner_user_id</code></td><td>U 是 A 的 owner</td></tr>
+<tr><td><code>agent:A#collaborator@user:U</code></td><td><code>agent_collaborator</code> 表</td><td>U 是 A 的 collaborator</td></tr>
+<tr><td><code>agent:A#member_of@workspace:W</code></td><td><code>agent.workspace_id</code></td><td>A 属于 W（agent 跟 user 一样有 workspace 归属）</td></tr>
+<tr><td><code>issue:I#assignee@agent:A</code></td><td><code>issue.assignee_id</code> + <code>type='agent'</code></td><td>A 在做 I</td></tr>
 </table>
 
-<p>这些关系仍然存在常规 schema 里，<code>policy/</code> 包里的函数做 graph traversal。<strong>不需要引入 SpiceDB/OpenFGA</strong>。</p>
+<h3>3.5 Agent 在关系图里跟 user 同样受约束</h3>
 
-<h3>3.4 什么时候才考虑显式 ReBAC 引擎</h3>
+<p>Agent 不是<strong>例外</strong>。同一 workspace 内 team 用来区分 member 可见性时，<strong>agent 跟 user 一样要遵守 team 边界</strong>：</p>
 
 <ul>
-<li>当跨 workspace agent 协作出现，关系图变成跨 tenant graph 时</li>
-<li>当 agent share/inheritance 出现 (agent A delegate 子任务给 agent B，B 继承 A 的 owner 关系)</li>
-<li>当 ACL rule 的组合性超过 5 个维度，policy 函数不可读</li>
+<li>Agent 属于 workspace W → 不能访问其他 workspace 的任何资源（hard wall）</li>
+<li>Agent 在 user U 上下文调用 → agent 看到的 ⊆ U 看到的（user_equivalent permission mode）</li>
+<li>U 不在 team T → U 调用的 agent 也不能访问 team T 内的 issue / drive</li>
+<li>Service agent 唯一例外：admin 显式声明 access scope（见 INV-6），但仍受 workspace hard wall 约束</li>
 </ul>
 
-<p>这些都不在当前 12 个月路线图，所以 ReBAC <em>思想保留，引擎不引入</em>。</p>
+<h3>3.6 Drive / sensitive data — 当前用 workspace 隔离</h3>
+
+<p>HR / 财务 / 客户合同 / 未发布产品 这类敏感数据，当前阶段的<strong>主防线是 workspace 隔离</strong>，不依赖 workspace 内的细粒度 file-level ACL：</p>
+
+<ul>
+<li><strong>敏感数据归到独立 workspace</strong>（如 <code>hr-workspace</code> / <code>finance-workspace</code>），只对相关员工 grant workspace member</li>
+<li>该 workspace 内的 agent 自动继承 workspace 隔离 — 无法 leak 到其他 workspace</li>
+<li>Workspace 内 drive 走<strong>space-level ACL</strong>（drive_space + drive_space_member），不做 file-level ACL（详见 drive 设计稿）</li>
+<li>未来如果需要同 workspace 内更细粒度隔离，可引入 sensitive tag + intrusive filter 拦截，仍不动 ACL 模型</li>
+</ul>
 
 <!-- ============================ -->
 <h2 id="compare" class="teal">4. 多维度对比 — Alice 设计 vs 市面产品</h2>
@@ -580,7 +601,7 @@
 
 <tr>
 <td><strong>Confused deputy 风险</strong></td>
-<td class="good">默认 0；service mode 由 service_agent_admin 角色门控</td>
+<td class="good">默认 0；service mode 由 admin 角色门控</td>
 <td class="good">0 — agent 用自己 token</td>
 <td class="bad">高 — 公开承认是 feature</td>
 <td class="good">0 — agent = user</td>
@@ -590,7 +611,7 @@
 
 <tr>
 <td><strong>Audit 完整度 + 不污染业务 DB</strong></td>
-<td class="good">✅ 全量 audit，独立 OTel pipeline</td>
+<td class="good">✅ 全量 audit，专用开源 audit 工具 (Graylog)</td>
 <td class="mid">activity log 在业务 DB，agent 维度欠缺</td>
 <td class="amber">audit log 跟 ACL 复杂度耦合</td>
 <td class="bad">薄</td>
@@ -672,295 +693,171 @@
 </table>
 
 <!-- ============================ -->
-<h2 id="memory" class="amber">5. Agent Memory — 文件系统 + 底座统一注入</h2>
+<h2 id="memory" class="amber">5. Agent Memory — Alice 只做 pointer 层</h2>
 
-<h3>5.1 设计目标</h3>
+<h3>5.1 关键架构判断</h3>
 
-<ul>
-<li>Memory 是 agent 持有的"执行经验"，<strong>不是 workspace knowledge</strong>（workspace knowledge 留在 git/issue/wiki 里，agent 现读现用）。</li>
-<li>Memory 必须可挂载、可审视、可 diff、可 revert — 不是黑盒。</li>
-<li>Memory 写入要走 INV-5 approval workflow。</li>
-<li><strong>读取必须极轻</strong>（不能每次 task 启动查 DB）。</li>
-<li>底座（Claude / Codex / Hermes）启动时通过<strong>统一机制</strong>注入，daemon 层抽象，runtime 不感知存储细节。</li>
-</ul>
-
-<h3>5.2 存储 — 文件系统，不是 DB</h3>
-
-<p>每个 agent 有独立 memory 目录，落地在 daemon 运行的机器上：</p>
-
-<pre><code>~/.alice/agents/&lt;agent_id&gt;/
-├── meta.json                       # 元信息：owner, permission_mode, created_at
-├── skills/                         # 已有：可复用 workflow，被 multica 现有 skill loader 读
-│   ├── deploy.md
-│   └── code-review.md
-├── memory/
-│   ├── preferences.md              # owner 标注的偏好（"该项目用 conventional commits"）
-│   ├── execution-log/              # 每次 task 完成后写一条 summary
-│   │   ├── 2026-05-24-task-abc.md
-│   │   └── 2026-05-25-task-def.md
-│   └── observed-patterns.md        # owner approve 后追加的"学到的"
-└── lock                            # 写入锁，owner approval workflow 持有</code></pre>
-
-<p>这个目录是 <em>source of truth</em>。可以 git-init 让它有 history（可选）。</p>
-
-<h3>5.3 同步 — Alice server 是 broker，不是 store</h3>
-
-<div class="insight">
-<strong>关键洞察</strong>：Memory 不存 server DB，是因为 (1) 读频繁（每次 task 启动），DB 读 latency 太重；(2) memory 是 daemon 进程在 user 机器上跑的，server 只需要知道"memory 已 updated"事件，不需要内容。Server DB 里只存 <code>agent.memory_version_hash</code>，daemon 通过 sync engine 收到 hash 变化时拉取对应 memory diff（类似 git fetch）。
+<div class="callout note">
+<span class="callout-title">能力下放底座，alice 只做最上层 pointer</span>
+每个底座（claude / codex / hermes / opencode / …）<strong>自带 memory 系统</strong> — 写 jsonl、维护 conversation history、累积 learned context。Alice 不替代也不重写这些，<strong>只做最上层一层 metadata + pointer 索引</strong>，让不同 agent 之间能互访彼此的 memory，让 task 结束后有统一地方查询 memory 状态。实际 memory 内容仍在底座目录里，alice 不集中存。
 </div>
 
-<p>具体协议：</p>
-<ol>
-<li>Owner 通过 web UI 提交 memory write request → <code>agent_iteration_request</code> table → owner approve</li>
-<li>Approve 完成 → server 写 memory blob 到 object store（S3 / R2 / minio）+ 更新 <code>agent.memory_version_hash</code></li>
-<li>Sync engine push hash 变化给所有跑该 agent 的 daemon</li>
-<li>Daemon 用本地 cache 比对 hash，diff 拉取，原子替换本地 memory 目录</li>
-</ol>
+<h3>5.2 Alice memory pointer 层的职责</h3>
 
-<h3>5.4 底座注入 — 统一 hook</h3>
+<table>
+<thead>
+<tr><th>职责</th><th>具体内容</th></tr>
+</thead>
+<tbody>
+<tr><td>📍 Metadata 索引</td><td>每个 agent × machine × 底座的 memory 在哪里、版本、schema、last-modified — 这些是 metadata，不是内容</td></tr>
+<tr><td>🔗 跨 agent 访问入口</td><td>agent A 想读 agent B 的 memory？通过 alice 元数据找到 B 的 memory 位置 + 调底座原生 API 读取</td></tr>
+<tr><td>📊 统一查询面板</td><td>所有 agent 的 memory 状态在一个 UI 里能看：哪些 agent 学了什么、memory size、跨底座是否有冲突</td></tr>
+<tr><td>🔄 跨 machine 同步编排</td><td>同一个 agent 在多个 machine 跑过 → alice 元数据知道有 N 份 memory，按需 sync（底座侧实现，alice 只编排）</td></tr>
+<tr><td>🗑 生命周期管理</td><td>Agent archive 时统一删除所有 machine 上的 memory（alice 通过元数据知道哪里有，发指令给底座清理）</td></tr>
+</tbody>
+</table>
 
-<p>三个底座 (Claude / Codex / Hermes) 启动方式不同，但 memory 注入用同一抽象：</p>
+<h3>5.3 数据模型 — alice 只存 metadata</h3>
 
-<pre><code>// daemon 层伪代码
-func PrepareRuntime(agent Agent, task Task) RuntimeConfig {
-    memDir := localMemoryPath(agent.ID)
-    return RuntimeConfig{
-        SystemPromptPrefix: composeSystemPrompt(
-            agent.Prompt,
-            readFile(memDir/"preferences.md"),
-            readFile(memDir/"observed-patterns.md"),
-            recentExecutionLog(memDir/"execution-log/", n=5),  // 只注入最近 5 条
-        ),
-        SkillsDir: memDir + "/skills",
-        ProviderOpts: providerSpecificOpts(agent.Provider, task),
-    }
+<pre><code>// alice DB 里只存 metadata，不存 memory 内容
+CREATE TABLE agent_memory_pointer (
+  agent_id      UUID NOT NULL,
+  machine_id    UUID NOT NULL,
+  provider      TEXT NOT NULL,        -- 'claude' | 'codex' | 'hermes' | 任何底座
+  memory_path   TEXT NOT NULL,        -- '~/.claude/projects/&lt;hash&gt;/memory/'
+  schema_version TEXT,                 -- 底座 memory schema 版本
+  last_modified TIMESTAMPTZ NOT NULL,
+  size_bytes    BIGINT,
+  tags          TEXT[],
+  PRIMARY KEY (agent_id, machine_id, provider)
+);</code></pre>
+
+<h3>5.4 跨底座 memory 互通</h3>
+
+<p>Claude 写的 memory 跟 codex 写的 schema 不同。Alice 不做 schema 转换 — <strong>跨底座访问由调用方负责</strong>。三种处理路径：</p>
+
+<table>
+<tr><th>场景</th><th>处理方式</th></tr>
+<tr><td>同底座 agent 互访</td><td>直接读对方 memory 文件（同 schema）</td></tr>
+<tr><td>跨底座 agent 互访</td><td>调用方用 LLM 概括 → 作为 plain text context 注入。Alice 提供 helper 工具但不强制</td></tr>
+<tr><td>Alice 自己 parse 底座 memory 做 unified UI</td><td><strong>不做</strong> — schema drift 维护成本爆炸</td></tr>
+</table>
+
+<h3>5.5 Memory 治理 — 模型自决定写入 + 异常回查</h3>
+
+<p>跟"每次 task 完都 prompt owner approve"的强干预模式相反，alice memory 层是<strong>薄层</strong>：</p>
+
+<ul>
+<li>模型自己决定什么时候写 — 不走 approval workflow</li>
+<li>每条 memory entry 带 metadata（来源 task / agent / timestamp / confidence）</li>
+<li>Audit pipeline 定期 batch（每周）跑 LLM judge 扫 memory 找矛盾 / 误导 → 异常才推给 owner review</li>
+<li>UI 提供 memory diff history — git-style，能 revert</li>
+<li>Permission mode 升级（user_equivalent → service）强制 invalidate 旧 memory，防 elevated agent 读到旧上下文</li>
+</ul>
+
+<!-- ============================ -->
+<h2 id="audit" class="green">6. Audit Observability — 用开源 audit 专用工具</h2>
+
+<h3>6.1 跟应用观测分离</h3>
+
+<div class="callout note">
+<span class="callout-title">关键原则</span>
+权限审计 (audit) 跟应用观测 (APM / error tracking / metrics) <strong>必须用不同工具</strong>。Audit 是<strong>合规级</strong>需求 — append-only / 不可改 / 长期保留 / 强查询能力 / 带专用 UI 给非工程人员看。Datadog / Sentry / Grafana APM 等通用观测工具不为 audit 设计 — 权限审计跟服务端观测<strong>混在一起会让 audit query 被业务 noise 淹没</strong>，且 ACL 模型也不匹配。
+</div>
+
+<h3>6.2 选型 — 开源 audit 专用工具</h3>
+
+<table>
+<tr><th>方案</th><th>类型</th><th>UI</th><th>License</th><th>推荐度</th></tr>
+<tr>
+  <td><strong>Graylog Open</strong></td>
+  <td>专门 log / audit management</td>
+  <td>✅ 自带专用 audit UI，search、alert、stream</td>
+  <td>SSPL（开源足够）</td>
+  <td class="good">首选</td>
+</tr>
+<tr>
+  <td><strong>OpenSearch + OpenSearch Dashboards</strong></td>
+  <td>Elastic fork，AWS 维护</td>
+  <td>✅ Kibana 同等</td>
+  <td>Apache 2.0</td>
+  <td class="good">次选</td>
+</tr>
+<tr>
+  <td><strong>Wazuh</strong></td>
+  <td>SIEM (security event mgmt)</td>
+  <td>✅ 专门 audit dashboard</td>
+  <td>GPL</td>
+  <td class="mid">如果未来要扩到 security event</td>
+</tr>
+<tr>
+  <td><strong>Loki + Grafana</strong></td>
+  <td>通用 log + 通用 BI</td>
+  <td>⚠️ Grafana 不专门为 audit 设计</td>
+  <td>AGPL</td>
+  <td class="mid">已有 Grafana stack 时可考虑</td>
+</tr>
+</table>
+
+<h3>6.3 推荐：Graylog Open</h3>
+
+<ul>
+<li>专门为 audit / log management 设计 — 不是 generic time-series</li>
+<li>UI 第一公民：search query / saved dashboards / alert rules 都为 audit use case 调优</li>
+<li>Stream-based 模型：audit event 流式进 Graylog，可分 stream 给不同 audience（superadmin / owner / compliance reviewer）</li>
+<li>Role-based access：Graylog 自己的 RBAC 让 owner 只看自己 agent，admin 全局，compliance 看 service agent</li>
+<li>Long-term retention 配置直接，符合 audit 合规需求</li>
+</ul>
+
+<h3>6.4 数据流</h3>
+
+<pre><code>┌─────────────────┐   syslog / GELF    ┌──────────────────┐
+│  Alice daemon   │ ────────────────▶ │  Graylog Open     │
+│  (写 audit event│                    │  + MongoDB +       │
+└─────────────────┘                    │   OpenSearch       │
+                                       └────────┬──────────┘
+┌─────────────────┐                             │
+│  Alice server   │ ────────────────▶          │
+│  (sync engine / │                             │ Graylog 自带 UI
+│   API handler)  │                             ▼
+└─────────────────┘                    ┌──────────────────┐
+                                       │ Owner dashboard  │
+                                       │ Admin global view│
+                                       │ Compliance audit │
+                                       └──────────────────┘</code></pre>
+
+<h3>6.5 Audit event schema</h3>
+
+<pre><code>{
+  "ts":             "2026-05-27T03:14:15Z",
+  "workspace_id":   "...",
+  "agent_id":       "...",
+  "owner_user_id":  "...",
+  "caller_user_id": "...",
+  "issue_id":       "...",
+  "task_id":        "...",
+  "tool_name":      "shell.exec",
+  "tool_args_hash": "sha256:...",
+  "intrusive_flags": ["high_volume_read"],
+  "judge_verdict":   "pass",
+  "outcome":         "success",
+  "runtime_location":"local|cloud-e2b|..."
 }</code></pre>
 
-<table>
-<tr><th>底座</th><th>注入方式</th></tr>
-<tr><td>Claude (claude -p)</td><td><code>--append-system-prompt</code> + skills 通过 <code>~/.claude/skills/</code> symlink 到 memDir/skills</td></tr>
-<tr><td>Codex CLI</td><td>config.toml 的 "multica-managed" 块写 system prompt + skills path</td></tr>
-<tr><td>Hermes (custom)</td><td>启动参数直接 pass</td></tr>
-</table>
+<h3>6.6 异常检测 + owner notification</h3>
 
-<h3>5.5 写回 — task 完成后由 daemon 提议</h3>
-
-<p>Task 结束时 daemon 生成 execution-log 摘要 → 推到 server 作为 <code>iteration_request</code> (kind=memory_write, auto_proposed=true) → 在 owner inbox 等 review。Owner 可以：</p>
 <ul>
-<li>Approve → 写进 <code>execution-log/</code></li>
-<li>Edit → 改完再 approve</li>
-<li>Reject → 丢弃</li>
-<li>Promote → 把 execution log 提炼成 <code>observed-patterns.md</code> 的一条（更高 signal）</li>
+<li>Graylog alert rule 算 baseline (agent_id, action_per_hour) + 异常阈值</li>
+<li>Anomaly 触发 → Graylog webhook → alice server → sync engine push notification 到 owner inbox</li>
+<li>严重 anomaly = 高 priority issue，自动 create with assignee = owner</li>
 </ul>
 
-<h3>5.6 Memory poisoning 防护</h3>
+<!-- ============================ -->
+<h2 id="risks" class="pink">7. 已知风险 + 反例</h2>
 
 <div class="nope">
-<strong>风险</strong>：错误的 learned pattern 一旦进 memory，污染所有后续 task。
-</div>
-
-<ul>
-<li>所有 memory write 走 owner approval（INV-5）— 不存在 agent 自己偷偷 write 的路径</li>
-<li>Memory 目录可选 git init，有 commit history 可 revert</li>
-<li>UI 显示"哪条 observed-pattern 来自哪个 task"，便于回查</li>
-<li><code>permission_mode</code> 升级时强制 invalidate memory（防止 elevated agent 读到 user_equivalent 期累积的 memory）</li>
-</ul>
-
-<!-- ============================ -->
-<h2 id="audit" class="green">6. Audit Observability — OpenTelemetry / sidecar 管道</h2>
-
-<h3>6.1 为什么不写业务 DB</h3>
-
-<ul>
-<li><strong>写压力</strong>：每个 tool call 一条 row，大并发时拖垮 OLTP 业务表</li>
-<li><strong>读模式不匹配</strong>：audit 查询是 time-series 聚合（按时间窗 / 按 agent / 按 anomaly score），不是 OLTP</li>
-<li><strong>污染业务 schema</strong>：audit 表加 index / partition / retention，跟业务表绑死，演进受限</li>
-<li><strong>合规边界</strong>：audit 要不可改 (append-only)，业务 DB 默认可改</li>
-</ul>
-
-<h3>6.2 推荐方案 — OpenTelemetry to ClickHouse</h3>
-
-<pre><code>┌─────────────────┐       OTLP/gRPC      ┌──────────────────┐
-│ Alice daemon    │ ──────────────────▶ │ OTel Collector   │
-│  (in-process    │                      │  (sidecar /       │
-│   OTel SDK)     │                      │   DaemonSet pod)  │
-└─────────────────┘                      └────────┬─────────┘
-                                                  │
-                                                  ▼ batch + transform
-┌─────────────────┐                      ┌──────────────────┐
-│ Alice server    │ ──────────────────▶ │ ClickHouse        │
-│  (in-process    │      OTLP            │  (time-series     │
-│   OTel SDK)     │                      │   columnar store) │
-└─────────────────┘                      └────────┬─────────┘
-                                                  │
-                                                  ▼
-                                          Grafana / Metabase
-                                          + anomaly detection</code></pre>
-
-<h3>6.3 业务代码看不见 audit 写入</h3>
-
-<p>用 OTel instrumentation API — daemon / server 调用 tool 时已经写 OTel span (existing trace)，audit 只是给 span 加 attribute。业务代码不需要写 "INSERT INTO audit_log"。</p>
-
-<pre><code>// 业务代码原本就有的 trace
-ctx, span := tracer.Start(ctx, "tool.shell.exec")
-defer span.End()
-span.SetAttributes(
-    attribute.String("agent.id", agent.ID),
-    attribute.String("agent.owner", agent.OwnerUserID),
-    attribute.String("caller.user", caller.ID),
-    attribute.String("issue.id", issue.ID),
-    attribute.String("tool.name", "shell.exec"),
-    attribute.String("tool.args.hash", hashArgs(args)),
-    attribute.StringSlice("intrusive.flags", intrusiveFlags),
-    attribute.String("outcome", outcome),
-)
-// audit 写入完全靠 OTel collector pipeline，业务代码无新增</code></pre>
-
-<h3>6.4 后端选项</h3>
-
-<table>
-<tr><th>方案</th><th>优势</th><th>劣势</th><th>推荐</th></tr>
-<tr><td>ClickHouse (self-host)</td><td>列存压缩好；time-series 查询快；开源</td><td>运维成本</td><td><span class="green">首选 prod</span></td></tr>
-<tr><td>Grafana Tempo + Loki</td><td>跟现有 Grafana stack 集成；分布式 trace 第一</td><td>Tempo 不擅长 aggregate 查询</td><td>已有 Grafana 时合适</td></tr>
-<tr><td>Honeycomb / Datadog APM</td><td>SaaS 省运维；strong UX</td><td>违反 A8 (data 出公司)，开源用户不便</td><td>不推荐</td></tr>
-<tr><td>Postgres TimescaleDB</td><td>跟现有 Postgres 同栈</td><td>性能不如 ClickHouse；仍有业务 DB 混淆风险</td><td>启动阶段可接受</td></tr>
-</table>
-
-<h3>6.5 异常检测 + owner notification</h3>
-
-<ul>
-<li>ClickHouse 物化视图算 baseline (agent_id, action_per_hour) + p99</li>
-<li>Anomaly 触发 → server 通过 sync engine push notification 到 owner inbox</li>
-<li>Anomaly = 高 priority issue，自动 create with assignee = owner</li>
-</ul>
-
-<!-- ============================ -->
-<h2 id="engineering" class="orange">7. 工程设计</h2>
-
-<h3>7.1 Schema 改动（业务 DB）</h3>
-
-<div class="schema-diagram">
--- 现有 agent 表加字段
-ALTER TABLE agent ADD COLUMN owner_user_id UUID NOT NULL REFERENCES "user"(id);
-ALTER TABLE agent ADD COLUMN permission_mode TEXT NOT NULL DEFAULT 'user_equivalent'
-  CHECK (permission_mode IN ('user_equivalent', 'service'));
-ALTER TABLE agent ADD COLUMN memory_version_hash TEXT;  -- 给 daemon sync 用
-ALTER TABLE agent ADD COLUMN service_approved_by UUID REFERENCES "user"(id);
-ALTER TABLE agent ADD COLUMN service_approved_at TIMESTAMPTZ;
-
--- 用户角色：service_agent_admin
-ALTER TABLE "user" ADD COLUMN is_service_agent_admin BOOLEAN NOT NULL DEFAULT false;
--- 已有 is_superadmin 不动
-
--- contributor 关系（可选，Phase 2）
-CREATE TABLE agent_contributor (
-  agent_id UUID NOT NULL REFERENCES agent(id) ON DELETE CASCADE,
-  user_id  UUID NOT NULL REFERENCES "user"(id),
-  added_by UUID NOT NULL REFERENCES "user"(id),  -- 必须是当前 owner
-  added_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  PRIMARY KEY (agent_id, user_id)
-);
-
--- iteration request workflow
-CREATE TABLE agent_iteration_request (
-  id            UUID PRIMARY KEY,
-  agent_id      UUID NOT NULL REFERENCES agent(id),
-  proposed_by   UUID NOT NULL REFERENCES "user"(id),
-  kind          TEXT NOT NULL,    -- 'prompt' | 'skill_add' | 'memory_write' | 'permission_mode' | ...
-  diff          JSONB NOT NULL,
-  auto_proposed BOOLEAN NOT NULL DEFAULT false,  -- daemon auto-propose 标记
-  status        TEXT NOT NULL DEFAULT 'pending', -- pending | approved | rejected | withdrawn
-  decided_by    UUID REFERENCES "user"(id),
-  decided_at    TIMESTAMPTZ,
-  decided_note  TEXT
-);
-
--- 注意：没有 audit_log 表。Audit 走 OTel → ClickHouse（§6）</div>
-
-<h3>7.2 Intrusive filter — 二层结构</h3>
-
-<h4>Layer 1: deterministic rules (fast path, ~µs)</h4>
-
-<table>
-<tr><th>Pattern</th><th>Severity</th><th>Action</th><th>保护目标</th></tr>
-<tr><td><code>git push --force</code> / <code>DROP TABLE</code> / <code>rm -rf /</code> / <code>kubectl delete</code></td><td>Critical</td><td>Halt</td><td>P1 数字资产</td></tr>
-<tr><td>访问含 sensitive tag (<code>hr</code>/<code>finance</code>/<code>security</code>) 的 resource</td><td>High</td><td>Prompt owner</td><td>P2 公司隐私</td></tr>
-<tr><td>单 task 内访问 issue/doc &gt; 50</td><td>High</td><td>Halt + 通知 owner</td><td>P1/P2</td></tr>
-<tr><td>访问其他 user 的 personal token / 私人 chat</td><td>High</td><td>Halt</td><td>P3 个人隐私</td></tr>
-<tr><td>调用未声明的 MCP server</td><td>Medium</td><td>Prompt owner</td><td>P1 数字资产</td></tr>
-<tr><td>调用频率 &gt; baseline 5σ</td><td>Medium</td><td>Notify owner (digest)</td><td>P1</td></tr>
-</table>
-
-<h4>Layer 2: LLM-as-judge (semantic path, ~1-3s)</h4>
-
-<p>Rule 没匹配但 OTel span 携带"低 confidence intrusive"信号时（e.g. query 字符串含敏感关键词但不在 tag list），异步触发 judge：</p>
-
-<pre><code>// Judge prompt 模板
-You are reviewing an action proposed by an AI agent in an internal collaboration tool.
-Decide if this action is intrusive given the protection priorities:
-  P1: company digital assets (code, prod DB, deployment, money)
-  P2: company private data (HR, finance, customer data, unreleased product)
-  P3: employee personal privacy (personal chats, tokens, notes)
-
-Context:
-- Agent: {agent.name} (owner: {agent.owner.name}, mode: {permission_mode})
-- Caller: {caller.name}
-- Issue: {issue.title} (workspace: {workspace.name})
-- Action: {tool_name}({args_summary})
-- Recent agent behavior summary: {last_n_actions}
-
-Output JSON: { "verdict": "pass"|"warn"|"halt", "priority": 1|2|3|null, "reason": "..." }</code></pre>
-
-<ul>
-<li><strong>Judge model</strong>: Claude Haiku 或 local Qwen 7B — 优化 latency &amp; cost。不用最强 model。</li>
-<li><strong>Caching</strong>: judge 结果按 <code>(agent_id, tool_name, args_signature)</code> 缓存 24h，避免重复 call。</li>
-<li><strong>Halt</strong>: tool call 阻塞 + sync engine push prompt 给 owner</li>
-<li><strong>Pass</strong>: 写 OTel span attribute (judge.verdict=pass)，继续</li>
-<li><strong>Fail-open vs fail-close</strong>: judge 服务挂掉时，按 INV-1 priority 决定：critical pattern (P1) fail-close (halt)，其他 fail-open (pass + 标 warn flag 给 owner review)</li>
-</ul>
-
-<h3>7.3 Service Agent — service_agent_admin 角色</h3>
-
-<table>
-<tr><th>角色层级</th><th>能力</th><th>批准 service agent</th></tr>
-<tr><td>regular user</td><td>创建 user_equivalent agent</td><td>不可</td></tr>
-<tr><td class="amber"><code>service_agent_admin</code> (新)</td><td>创建 user_equivalent agent + 创建 service agent；担任 service agent 的 owner</td><td>可 (创建者 + 另一 service_agent_admin co-sign)</td></tr>
-<tr><td><code>superadmin</code> (已有)</td><td>全权（含 workspace / user 管理）</td><td>可</td></tr>
-</table>
-
-<ul>
-<li><strong>关键约束</strong>：service agent 的 <code>owner_user_id</code> 必须是 <code>is_service_agent_admin = true</code> 的 user。普通 user 不能担当 service agent owner。</li>
-<li><strong>创建路径</strong>：service_agent_admin 在专门 UI 提议 → 另一 service_agent_admin 或 superadmin co-sign → 才能 active</li>
-<li><strong>UI 标识</strong>：所有 service agent 在 chat / issue 里头像旁加 🛡 标志，response 末尾自动 footer "this answer used elevated access"</li>
-<li><strong>季度 review</strong>：所有 service agent + 它们的 owner 每季度由 superadmin mandatory review，OTel dashboard 给 dedicated view</li>
-</ul>
-
-<h3>7.4 Owner 生命周期</h3>
-
-<ul>
-<li><strong>创建 agent</strong>：creator 必须指定 owner（默认 creator 自己，可选他人；service agent 必须选 service_agent_admin 级别）。他人需在 invite 期内 accept。</li>
-<li><strong>Transfer owner</strong>：当前 owner 提 transfer → 新 owner accept → audit 记录</li>
-<li><strong>Owner 离职</strong>：HR 触发 user disable → 该 user owner 的 agent 进入 "orphaned"：
-  <ul>
-  <li>Agent 不接新 task (state = paused)</li>
-  <li>Workspace admin 收到通知 + 7 天 grace period</li>
-  <li>Grace period 内 admin 指定新 owner 或 archive agent</li>
-  <li>过期 auto-archive，OTel audit 永久保留</li>
-  </ul>
-</li>
-<li><strong>Issue assignee = agent 时</strong>：agent block 求助默认 escalate 到 owner（不是 issue creator）。Owner 可重新 assign 回 agent 或转给其他人。</li>
-</ul>
-
-<h3>7.5 跟 Linear sync engine 的集成</h3>
-
-<p>所有 iteration_request、anomaly notification 都通过 sync engine push 到 client。Owner 的 inbox 自动收到她负责 agent 的 pending iteration request + intrusive halt prompt。无须额外 polling / webhook。Memory hash 变化 push 给 daemon。</p>
-
-<!-- ============================ -->
-<h2 id="risks" class="pink">8. 已知风险 + 反例</h2>
-
-<div class="nope">
-<strong>风险 1 — OTel pipeline 挂掉</strong>。Daemon 发 span 失败累积本地 buffer，buffer 满时丢 audit。
-缓解：(a) Collector sidecar 跟 daemon 同生命周期，挂掉 daemon 一起重启；(b) Daemon 本地有 disk-backed queue (OTel SDK 提供)，buffer 满时拒接新 task (fail-close)；(c) 业务核心 critical action (P1 rule) 必须有 sync OTel ack 才放行，非 critical 异步。
+<strong>风险 1 — Audit pipeline 挂掉</strong>。Daemon 发 audit event 失败累积本地 buffer，buffer 满时丢 audit。
+缓解：(a) Audit collector 跟 daemon 同生命周期，挂掉一起重启；(b) Daemon 本地有 disk-backed queue，buffer 满时拒接新 task (fail-close)；(c) 业务核心 critical action (P1 rule) 必须有 sync audit ack 才放行，非 critical 异步。
 </div>
 
 <div class="nope">
@@ -975,12 +872,12 @@ Output JSON: { "verdict": "pass"|"warn"|"halt", "priority": 1|2|3|null, "reason"
 
 <div class="nope">
 <strong>风险 4 — Service agent 滑坡</strong>。如果创建 service agent 太容易，最终所有 agent 都升 service mode 绕过 user-equivalent 限制。
-缓解：(a) 必须 service_agent_admin 角色 + co-sign；(b) UI 路径故意笨拙；(c) 季度 review mandatory；(d) OTel dashboard 把 service agent action 高亮，跟 user_equivalent 对比可视化。
+缓解：(a) 必须 admin 角色 + co-sign；(b) UI 路径故意笨拙；(c) 季度 review mandatory；(d) Audit dashboard 把 service agent action 高亮，跟 user_equivalent 对比可视化。
 </div>
 
 <div class="nope">
-<strong>风险 5 — Agent memory poisoning</strong>。错误 learned pattern 写入后污染所有后续 task。
-缓解：(a) Memory write 全部走 owner approval；(b) memory 目录可 git init 有 history；(c) origin trace UI；(d) permission_mode 升级时 invalidate memory；(e) Layer 2 LLM judge 偶尔抽检 memory 内容 (跑 weekly batch)。
+<strong>风险 5 — Agent memory poisoning</strong>。模型自决定写入 memory 时，错误 learned pattern 可能污染后续 task。
+缓解：(a) 每条 memory entry 带 metadata（来源 task / agent / timestamp / confidence），便于回溯；(b) memory 目录可 git init 有 history，UI 提供 diff + revert；(c) 异步 LLM judge weekly batch 扫 memory 找矛盾 / 误导内容，异常推给 owner review；(d) permission_mode 升级（user_equivalent → service）强制 invalidate memory。
 </div>
 
 <div class="nope">
@@ -989,7 +886,7 @@ Output JSON: { "verdict": "pass"|"warn"|"halt", "priority": 1|2|3|null, "reason"
 </div>
 
 <!-- ============================ -->
-<h2 id="phasing" class="green">9. Phasing</h2>
+<h2 id="phasing" class="green">8. Phasing</h2>
 
 <table>
 <tr><th>Phase</th><th>内容</th><th>预估</th><th>退出标准</th></tr>
@@ -1000,18 +897,17 @@ Output JSON: { "verdict": "pass"|"warn"|"halt", "priority": 1|2|3|null, "reason"
 <td>—</td>
 </tr>
 <tr>
-<td><strong>Phase 1 — Owner + OTel audit</strong></td>
+<td><strong>Phase 1 — Owner + Audit pipeline</strong></td>
 <td>
   <ul>
   <li>Schema: <code>agent.owner_user_id</code></li>
-  <li>OTel SDK 集成 daemon + server</li>
-  <li>OTel collector sidecar + ClickHouse 后端</li>
-  <li>Grafana / Metabase audit dashboard</li>
+  <li>Daemon + server 写 audit event 到 Graylog Open</li>
+  <li>Graylog dashboard：owner / admin / compliance 三种视图</li>
   <li>Owner 生命周期（创建 / transfer / 离职 orphan）</li>
   </ul>
 </td>
 <td>~4 weeks</td>
-<td>所有 agent 都有 owner；OTel pipeline 在 prod；owner 收到第一份 weekly digest</td>
+<td>所有 agent 都有 owner；audit pipeline 在 prod；owner 收到第一份 weekly digest</td>
 </tr>
 <tr>
 <td><strong>Phase 2 — Intrusive filter (Layer 1 rules only)</strong></td>
@@ -1020,7 +916,7 @@ Output JSON: { "verdict": "pass"|"warn"|"halt", "priority": 1|2|3|null, "reason"
   <li>Tool call interceptor in daemon</li>
   <li>初版 10 条 rule</li>
   <li>UI owner approve 通道</li>
-  <li>Anomaly detection (ClickHouse 物化视图)</li>
+  <li>Anomaly detection (Graylog alert rule)</li>
   </ul>
 </td>
 <td>~3 weeks</td>
@@ -1039,18 +935,17 @@ Output JSON: { "verdict": "pass"|"warn"|"halt", "priority": 1|2|3|null, "reason"
 <td>至少 5 个 agent 经过 workflow</td>
 </tr>
 <tr>
-<td><strong>Phase 4 — Agent memory (文件系统 + 统一注入)</strong></td>
+<td><strong>Phase 4 — Memory pointer 层</strong></td>
 <td>
   <ul>
-  <li>Memory 目录结构 + sync engine hash 协议</li>
-  <li>底座统一注入抽象 (Claude/Codex/Hermes)</li>
-  <li>Memory write 走 iteration approval</li>
-  <li>Daemon auto-propose execution log</li>
-  <li>Memory revert / origin trace UI</li>
+  <li><code>agent_memory_pointer</code> 表 + daemon report API</li>
+  <li>Agent profile 展示 memory pointer 列表</li>
+  <li>跨 agent memory 访问 API</li>
+  <li>Memory archive 工具（agent 删除时同步清理底座 memory）</li>
   </ul>
 </td>
-<td>~5 weeks</td>
-<td>至少 1 个 agent 因 memory 提升任务质量（可观测）</td>
+<td>~4 weeks</td>
+<td>至少 1 个 agent 跨实例访问到另一个 agent 的 memory（可观测）</td>
 </tr>
 <tr>
 <td><strong>Phase 5 — Intrusive filter Layer 2 (LLM-as-judge)</strong></td>
@@ -1068,7 +963,7 @@ Output JSON: { "verdict": "pass"|"warn"|"halt", "priority": 1|2|3|null, "reason"
 <td><strong>Phase 6 — Service Agent (opt-in)</strong></td>
 <td>
   <ul>
-  <li><code>user.is_service_agent_admin</code> 字段</li>
+  <li><code>user.is_admin</code> 字段</li>
   <li>Service agent 专门创建 UI + co-sign workflow</li>
   <li>UI 🛡 标识 + auto footer</li>
   <li>季度 review mandatory automation</li>
@@ -1080,7 +975,7 @@ Output JSON: { "verdict": "pass"|"warn"|"halt", "priority": 1|2|3|null, "reason"
 </table>
 
 <!-- ============================ -->
-<h2 id="sources" class="gray">10. 引用来源</h2>
+<h2 id="sources" class="gray">9. 引用来源</h2>
 
 <h4>Accountability / governance 模型</h4>
 <ul>
@@ -1095,11 +990,11 @@ Output JSON: { "verdict": "pass"|"warn"|"halt", "priority": 1|2|3|null, "reason"
 <li><a href="https://stripe.com/blog/online-migrations">Stripe internal data access patterns</a></li>
 </ul>
 
-<h4>OpenTelemetry / ClickHouse audit pipeline</h4>
+<h4>开源 audit 工具</h4>
 <ul>
-<li><a href="https://opentelemetry.io/docs/collector/">OpenTelemetry Collector</a></li>
-<li><a href="https://clickhouse.com/docs/observability">ClickHouse for observability</a></li>
-<li><a href="https://opentelemetry.io/docs/specs/otel/trace/api/">OTel Trace API spec</a></li>
+<li><a href="https://graylog.org/products/source-available/">Graylog Open</a></li>
+<li><a href="https://opensearch.org/">OpenSearch + OpenSearch Dashboards</a></li>
+<li><a href="https://wazuh.com/">Wazuh (SIEM)</a></li>
 </ul>
 
 <h4>Permission as anti-pattern detection</h4>
