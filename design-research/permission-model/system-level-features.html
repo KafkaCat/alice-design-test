@@ -165,6 +165,32 @@
   }
   .mockup-placeholder .icon { font-size: 26px; margin-bottom: 6px; }
 
+  .mockup-figure {
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 12px;
+    margin: 14px 0;
+  }
+  .mockup-figure img {
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    border: 1px solid #e5e7eb;
+    display: block;
+  }
+  .mockup-figure figcaption {
+    margin-top: 10px;
+    color: #4b5563;
+    font-size: 12.5px;
+    line-height: 1.55;
+  }
+  .mockup-figure figcaption strong { color: #b91c1c; }
+  .mockup-annotation-list { font-size: 12.5px; color: #4b5563; margin: 8px 0 0; }
+  .mockup-annotation-list li { margin-bottom: 4px; }
+  .mockup-annotation-list .miss { color: #b91c1c; font-weight: 600; }
+  .mockup-annotation-list .have { color: #15803d; font-weight: 600; }
+
   .role-chip {
     display: inline-block;
     padding: 3px 10px;
@@ -451,12 +477,21 @@
 </div>
 </div>
 
-<h3>4.3 Mockup（待 dev 环境起来后截图）</h3>
+<h3>4.3 现状 vs 要补的功能</h3>
 
-<div class="mockup-placeholder">
-<div class="icon">📷</div>
-当前 machine 详情页存在但功能不全，待 alice local dev 起来后我截 screenshot 放这里，演示 "Install runtime" 区块 + memory pointer 列表。
-</div>
+<figure class="mockup-figure">
+<img src="./mockups/alice-machines-list.png" alt="Alice machines list - empty state with only Connect Machine CTA"/>
+<figcaption>
+  <strong>当前 Machines 页 (本地 dev workspace)</strong>：只有一个 "Connect Machine" 入口 + 一段提示文案，<strong>没有 Install Runtime 区块、没有 memory pointer 列表、没有 per-machine sandbox capability 信息</strong>。
+</figcaption>
+<ul class="mockup-annotation-list">
+<li><span class="have">现状已有</span>：Machines 入口在左侧导航，Connect Machine 按钮已存在</li>
+<li><span class="miss">要补</span>：machine 详情页 — 当前列表点进去几乎空白</li>
+<li><span class="miss">要补</span>：详情页加 "Install Runtime" 区块（claude / codex / hermes 多选 + 平台检测 + 一键安装命令生成）</li>
+<li><span class="miss">要补</span>：详情页加 "Memory pointers" 列表（每个底座的 home 路径 + 上次同步时间）</li>
+<li><span class="miss">要补</span>：详情页加 "Sandbox capability" badge（这台 machine 上 bubblewrap / Landlock / sandbox-exec 是否可用）</li>
+</ul>
+</figure>
 
 <h3>4.4 Memory pointer 像 basic memory</h3>
 
@@ -470,12 +505,28 @@ basic memory 不集中存 memory，而是在用户机器上扫描特定路径（
 
 <p>Alice 已经有 agent 详情页（你提到很乱、没 owner 等概念）。下面是需要补的功能 + 待截图对比当前页。</p>
 
-<h3>5.1 Mockup（待截图）</h3>
+<h3>5.1 现状截图 — 当前 agent 创建表单 + 列表</h3>
 
-<div class="mockup-placeholder">
-<div class="icon">📷</div>
-待 local dev 起来后截当前 agent 页 → 标注 "这里加 owner badge" / "这里加 collaborator 列表" / "这里加 iteration history" 等改造建议。
-</div>
+<figure class="mockup-figure">
+<img src="./mockups/alice-agents-list.png" alt="Alice agents list - empty state"/>
+<figcaption>
+  <strong>当前智能体列表页（empty state）</strong>：右上角 + 中间各一个 "新建智能体" CTA。没有 filter / 分组 / search / template / marketplace 入口。
+</figcaption>
+</figure>
+
+<figure class="mockup-figure">
+<img src="./mockups/alice-agent-create.png" alt="Alice create agent dialog - missing owner field"/>
+<figcaption>
+  <strong>当前创建 agent 对话框</strong>：字段只有 名称 / 描述 / 可见性 (Workspace / Personal) / 运行时 / 模型。<strong>没有 owner 字段</strong>，没有 collaborator 邀请，没有 permission_mode 选择，没有 service agent 路径。
+</figcaption>
+<ul class="mockup-annotation-list">
+<li><span class="have">现状已有</span>：名称 / 描述 / 可见性 / 运行时 / 模型 — 基本骨架</li>
+<li><span class="miss">要补</span>：<strong>owner 字段</strong>（default = creator 但可选他人，强调 owner ≠ creator）</li>
+<li><span class="miss">要补</span>：<strong>permission_mode</strong>（user_equivalent / service — 后者需要 admin 角色 + 跳到专门 service agent 创建流程）</li>
+<li><span class="miss">要补</span>：可见性 Workspace / Personal 之外加 "Service" 第三种（admin only）</li>
+<li><span class="miss">要补</span>：在表单里能添加初始 collaborator</li>
+</ul>
+</figure>
 
 <h3>5.2 当前页 + 要补的功能</h3>
 
@@ -566,12 +617,12 @@ basic memory 不集中存 memory，而是在用户机器上扫描特定路径（
 <!-- ============================ -->
 <h2 class="pink">7. Owner UI — 设置 / 转移 / 异常处理</h2>
 
-<h3>7.1 Mockup（待截图）</h3>
+<h3>7.1 Mockup (Owner UI 当前不存在，等 P1 实现后回填)</h3>
 
 <div class="mockup-placeholder">
-<div class="icon">📷</div>
-待 dev 起来后画 owner 设置面板、transfer flow、owner inbox 的 mockup。<br>
-关键页面：(a) agent profile 上的 owner badge + transfer button，(b) inbox tab "Agents I own"，(c) 离职 orphan 通知。
+<div class="icon">🚧</div>
+当前 alice agent 详情页<strong>完全没有 owner 概念</strong>（见 §5 截图）。Owner UI 包含：(a) agent profile 上的 owner badge + transfer button，(b) inbox tab "Agents I own" 含 pending intrusive iteration / halted action 两个 stream，(c) 离职 orphan 通知。<br>
+依赖 P1 (Owner schema + OTel pipeline) 落地后截图回填。
 </div>
 
 <div class="module-grid">
@@ -677,12 +728,12 @@ Justification:
 <!-- ============================ -->
 <h2 class="green">9. Observability — Dashboard / Anomaly / Cost</h2>
 
-<h3>9.1 Mockup（待截图）</h3>
+<h3>9.1 Mockup (Observability 当前未实现，等 P1 落地后回填)</h3>
 
 <div class="mockup-placeholder">
-<div class="icon">📷</div>
-待 OTel pipeline + Grafana / Metabase / 自建 dashboard 起来后截图。<br>
-关键页面：(a) per-agent dashboard panel，(b) owner weekly digest 邮件 / 飞书卡片，(c) superadmin global anomaly view。
+<div class="icon">🚧</div>
+当前 alice <strong>没有 OTel pipeline，无 dashboard，无 anomaly detection</strong>。要补的页面：(a) per-agent dashboard panel — 最近 100 action stream + intrusive flag trend，(b) owner weekly digest 邮件 / 飞书卡片，(c) superadmin global anomaly view。<br>
+依赖 P1 (OTel + ClickHouse + Grafana) 落地后截图回填。
 </div>
 
 <div class="module-grid">
@@ -733,11 +784,11 @@ Justification:
 <!-- ============================ -->
 <h2 class="orange">10. Intrusive Filter — Rule library + LLM judge</h2>
 
-<h3>10.1 规则库 UI（mockup 待截图）</h3>
+<h3>10.1 规则库 UI (当前不存在，等 P2 实现后回填)</h3>
 
 <div class="mockup-placeholder">
-<div class="icon">📷</div>
-待 admin 页面起来后画 rule library 列表 + edit dialog。
+<div class="icon">🚧</div>
+当前 alice <strong>没有 admin 页面也没有 intrusive filter rule library</strong>。依赖 P2 (intrusive filter Layer 1 rules + admin UI) 落地后截图回填。
 </div>
 
 <h3>10.2 规则示例</h3>
@@ -769,12 +820,21 @@ Justification:
 
 <p>主设计里 "agent 可以是 issue.assignee" 在 UI 上要做<strong>很多小改</strong>，单独列。</p>
 
-<h3>11.1 Assign 下拉（mockup 待截图）</h3>
+<h3>11.1 现状截图 — 当前 issue list</h3>
 
-<div class="mockup-placeholder">
-<div class="icon">📷</div>
-待 dev 起来后截当前 assign 下拉，标注要加 Agents 分组 + owner 显示 + busy(N) 状态。
-</div>
+<figure class="mockup-figure">
+<img src="./mockups/alice-home.png" alt="Alice my issues page - no agent assignee indicator"/>
+<figcaption>
+  <strong>当前 "我的 Issue" 页</strong>：tabs 区分 "已分配 / 我创建的 / 我的智能体"。这是好的开端 — Alice 已经把 agent assignee 概念部分实现，但<strong>缺乏 owner badge / agent state indicator / runtime location 标识</strong>。
+</figcaption>
+<ul class="mockup-annotation-list">
+<li><span class="have">现状已有</span>：tab 区分 human / agent assignee；polymorphic assignee 字段</li>
+<li><span class="miss">要补</span>：assign 下拉里 agent 分组明确标 🤖 普通 / 🛡 service，旁边显示 owner</li>
+<li><span class="miss">要补</span>：每个 agent 显示 busy(N) 并发 task 数</li>
+<li><span class="miss">要补</span>：issue 详情页里展开 agent action stream + 1-click Halt</li>
+<li><span class="miss">要补</span>：agent 跑哪里（local / cloud）有 indicator（见 runtime isolation 文档）</li>
+</ul>
+</figure>
 
 <h3>11.2 要改的点</h3>
 
