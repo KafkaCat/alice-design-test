@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>Alice Drive 权限设计 — 融入 v3 模型</title>
+<title>Alice Drive 权限设计 — 融入 主设计模型</title>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -55,6 +55,7 @@
 
   code { font-family: "SF Mono", Menlo, Consolas, monospace; background: #f0f0f0; padding: 1px 6px; border-radius: 3px; font-size: 12.5px; }
   pre { background: #1e1e1e; color: #d4d4d4; padding: 14px 18px; border-radius: 6px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; }
+  pre code { background: transparent; color: inherit; padding: 0; }
 
   table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13px; background: #fff; border-radius: 6px; overflow: hidden; }
   th, td { border: 1px solid #e5e7eb; padding: 9px 12px; vertical-align: top; text-align: left; }
@@ -227,13 +228,13 @@
 </head>
 <body>
 
-<h1>Drive 权限设计 — 融入 v3 模型</h1>
-<div class="meta">配套 v3 + 系统级功能 · 2026-05-26 · 把 v3 模型注入网盘</div>
+<h1>Drive 权限设计 — 融入 主设计模型</h1>
+<div class="meta">配套主设计 + 系统级功能 · 持续迭代中 · 把主设计模型注入网盘</div>
 
 <div class="hero">
 <h2>这份文档讲什么</h2>
 <p>Alice 的 drive 功能 schema 设计完整但<strong>运行时是半成品</strong> — drive_space_member 表 + role 系统都在，但没有 add member endpoint；project_drive_space 表存在但 0 handler 引用；drive_file 无独立 ACL。</p>
-<p>这是<strong>好消息</strong>。没有 legacy ACL 要兼容，可以一次性把 v3 的 invariant（accounter / audit-over-ACL / agent first-class / context 透明度）注入 drive — 而不是事后改造。</p>
+<p>这是<strong>好消息</strong>。没有 legacy ACL 要兼容，可以一次性把 主设计的 invariant（owner / audit-over-ACL / agent first-class / context 透明度）注入 drive — 而不是事后改造。</p>
 </div>
 
 <div class="stat-grid">
@@ -300,17 +301,17 @@
 </div>
 
 <!-- ============================ -->
-<h2 class="indigo">2. 设计原点 — Drive 怎么融入 v3</h2>
+<h2 class="indigo">2. 设计原点 — Drive 怎么融入主设计</h2>
 
-<p>下面 5 条 invariant 是 v3 模型在 drive 这个领域的延伸。每条都对应 v3 的某条 invariant，但具体到 drive 这个 domain。</p>
+<p>下面 5 条 invariant 是 主设计模型在 drive 这个领域的延伸。每条都对应 主设计的某条 invariant，但具体到 drive 这个 domain。</p>
 
 <!-- ----- DRV-1 ----- -->
 <div class="invariant critical">
 <h3><span class="inv-tag critical">DRV-1</span>Drive 是 P1 保护对象（公司数字资产）</h3>
-<p><strong>陈述</strong>：网盘里的文件 99% 是"公司数字资产"（合同 / 设计稿 / 代码备份 / 客户数据 / 财务）。按 v3 INV-1 优先级，drive 是 <span class="priority-pill p1">P1</span> 第一优先保护对象，跟 git push / DROP TABLE 同级。</p>
+<p><strong>陈述</strong>：网盘里的文件 99% 是"公司数字资产"（合同 / 设计稿 / 代码备份 / 客户数据 / 财务）。按 INV-1 优先级，drive 是 <span class="priority-pill p1">P1</span> 第一优先保护对象，跟 git push / DROP TABLE 同级。</p>
 <p><strong>含义</strong>：</p>
 <ul>
-<li>所有 drive read/write 走 OTel 全量 audit（v3 INV-8）</li>
+<li>所有 drive read/write 走 OTel 全量 audit（INV-8）</li>
 <li>Intrusive filter 在 drive read 维度有特殊 rule：批量下载 / 跨 space 访问 / agent 读未声明 path 都属于 intrusive</li>
 <li>Drive 的 default ACL 比 issue/chat 更紧 — 默认 private space，需要显式 share 到 team/workspace</li>
 </ul>
@@ -319,7 +320,7 @@
 <!-- ----- DRV-2 ----- -->
 <div class="invariant">
 <h3><span class="inv-tag">DRV-2</span>Space-level ACL，无 file-level ACL（INV-7 的领域延伸）</h3>
-<p><strong>陈述</strong>：权限挂在 <strong>space</strong> 层，不挂在 <strong>file</strong> 层。这跟 v3 INV-7 "不做 fine-grained capability" 是同一思路在 drive 上的应用。</p>
+<p><strong>陈述</strong>：权限挂在 <strong>space</strong> 层，不挂在 <strong>file</strong> 层。这跟 INV-7 "不做 fine-grained capability" 是同一思路在 drive 上的应用。</p>
 
 <div class="callout note">
 <span class="callout-title">为什么不做 file-level ACL</span>
@@ -343,7 +344,7 @@ File 多 = 几千几万。Per-file ACL = 维护噩梦 + UI 灾难 + 心智负担
 <!-- ----- DRV-3 ----- -->
 <div class="invariant">
 <h3><span class="inv-tag">DRV-3</span>Drive 权限通过<strong>关系图</strong>表达（隐式 ReBAC）</h3>
-<p><strong>陈述</strong>：用户能否访问一个 file，<strong>不只看 drive_space_member 直接 ACL</strong>，要走完整的关系图。这跟 v3 §3 "Alice 当前是隐式 ReBAC" 一致 — drive 接入同一关系网。</p>
+<p><strong>陈述</strong>：用户能否访问一个 file，<strong>不只看 drive_space_member 直接 ACL</strong>，要走完整的关系图。这跟 主设计 §3 "Alice 当前是隐式 ReBAC" 一致 — drive 接入同一关系网。</p>
 
 <h4>访问路径有 4 种</h4>
 
@@ -361,14 +362,14 @@ user ─[can_view]→ issue ←[references]── file (in any space)           
 <!-- ----- DRV-4 ----- -->
 <div class="invariant">
 <h3><span class="inv-tag">DRV-4</span>Agent 是 first-class drive subject（INV-3 的延伸）</h3>
-<p><strong>陈述</strong>：Agent 跟 user 一样可以是 drive_space_member、可以是 file 的 created_by、可以拥有自己的 agent-output space。这跟 v3 INV-3 "agent 是 first-class citizen" 一致。</p>
+<p><strong>陈述</strong>：Agent 跟 user 一样可以是 drive_space_member、可以是 file 的 created_by、可以拥有自己的 agent-output space。这跟 INV-3 "agent 是 first-class citizen" 一致。</p>
 
 <p><strong>具体规则</strong>：</p>
 <ul>
-<li>Agent 默认能访问的 = accounter 能访问的 ∩ 当前 caller 能访问的（user_equivalent mode）</li>
+<li>Agent 默认能访问的 = owner 能访问的 ∩ 当前 caller 能访问的（user_equivalent mode）</li>
 <li>Service mode agent 可以有额外 space membership（admin 声明）</li>
 <li>Agent 上传文件时 source_type='agent_output'，default folder 是 agent 自己的输出空间</li>
-<li>Agent 产出的文件 created_by_type='agent', created_by_id=agent.id，但 audit log 记录 accounter</li>
+<li>Agent 产出的文件 created_by_type='agent', created_by_id=agent.id，但 audit log 记录 owner</li>
 </ul>
 </div>
 
@@ -377,7 +378,7 @@ user ─[can_view]→ issue ←[references]── file (in any space)           
 <h3><span class="inv-tag">DRV-5</span>所有 drive access 走 OTel 全量 audit</h3>
 <p><strong>陈述</strong>：每次 file read / write / delete / share 都写 OTel span。包括 signed URL 的生成（拿了 URL 就视为 access，无论是否真下载）。</p>
 
-<p>跟 v3 INV-8 一致 — audit-over-ACL，不在业务 DB 写。Drive 是 P1 资产 → audit fail-close（写 audit 失败 = 拒绝 access）</p>
+<p>跟 INV-8 一致 — audit-over-ACL，不在业务 DB 写。Drive 是 P1 资产 → audit fail-close（写 audit 失败 = 拒绝 access）</p>
 </div>
 
 <!-- ============================ -->
@@ -415,16 +416,16 @@ user ─[can_view]→ issue ←[references]── file (in any space)           
 <li><strong>谁可建</strong>：任何 user</li>
 <li><strong>谁可读/写</strong>：仅 creator</li>
 <li><strong>典型例子</strong>：员工自己的草稿 / 个人笔记 / 暂存</li>
-<li><strong>员工离职</strong>：private space 默认归档（不删除，配合 v3 INV-1 priority 3 员工个人隐私）；HR 触发后管理员可申请解锁但需 user 同意 OR 法律授权</li>
+<li><strong>员工离职</strong>：private space 默认归档（不删除，配合 INV-1 priority 3 员工个人隐私）；HR 触发后管理员可申请解锁但需 user 同意 OR 法律授权</li>
 </ul>
 </div>
 
 <div class="space-card agent">
 <h4><span class="icon">🤖</span>kind = agent_output — Agent 产出池（新增 kind）</h4>
-<div class="desc">每个 agent 自动有一个 agent_output space，agent 在 task 产出的文件默认落这里。accounter 是 space admin。</div>
+<div class="desc">每个 agent 自动有一个 agent_output space，agent 在 task 产出的文件默认落这里。owner 是 space admin。</div>
 <ul>
 <li><strong>谁可建</strong>：agent 创建时 daemon 自动建</li>
-<li><strong>谁可读</strong>：accounter + 该 agent 当前 task 的 caller</li>
+<li><strong>谁可读</strong>：owner + 该 agent 当前 task 的 caller</li>
 <li><strong>谁可写</strong>：只有这个 agent 自己（subject_type='agent', subject_id=agent.id, role='editor'）</li>
 <li><strong>典型例子</strong>：deploy_bot 生成的 deploy 报告 / pr_reviewer 的 review summary / 数据分析 agent 跑的 query 结果</li>
 <li><strong>清理策略</strong>：90 天无 reference 自动归档；agent archive 时 space 也 archive</li>
@@ -453,7 +454,7 @@ user ─[can_view]→ issue ←[references]── file (in any space)           
 <li>Agent 通过 X-Agent-ID + X-Task-ID 走 resolveActor，identity 是 agent</li>
 <li>权限 check：agent.permission_mode='user_equivalent' → 检查 (a) caller user 能读吗 (b) agent 自己作为 subject 能读吗 — 两个都通过才放行</li>
 <li>service mode → 检查 service 声明范围里是否包含此 space</li>
-<li>OTel audit 写：agent_id, accounter, caller, file_id, space_id</li>
+<li>OTel audit 写：agent_id, owner, caller, file_id, space_id</li>
 </ul>
 </div>
 
@@ -461,9 +462,9 @@ user ─[can_view]→ issue ←[references]── file (in any space)           
 <h3><span class="icon">📤</span>Agent 写 file</h3>
 <ul>
 <li>默认目标：agent 自己的 agent_output space</li>
-<li>显式目标：accounter 允许的 space + agent 是 space_member editor 才能写</li>
+<li>显式目标：owner 允许的 space + agent 是 space_member editor 才能写</li>
 <li>source_type='agent_output', source_id=task.id</li>
-<li>大文件（&gt;100MB）触发 intrusive filter prompt accounter</li>
+<li>大文件（&gt;100MB）触发 intrusive filter prompt owner</li>
 </ul>
 </div>
 
@@ -471,7 +472,7 @@ user ─[can_view]→ issue ←[references]── file (in any space)           
 <h3><span class="icon">🔗</span>Agent 创建 drive_reference</h3>
 <ul>
 <li>Agent 工作时把产出 reference 到 issue（"我把 deploy log 挂到这个 issue 上了"）</li>
-<li>跟 v3 sync engine 集成：reference 创建 → 自动推送给所有能看 issue 的人</li>
+<li>跟 sync engine 集成：reference 创建 → 自动推送给所有能看 issue 的人</li>
 <li>权限继承走 DRV-3 路径 ④ — issue 可见者自动可下载</li>
 </ul>
 </div>
@@ -482,7 +483,7 @@ user ─[can_view]→ issue ←[references]── file (in any space)           
 <li>"summarize all files in /finance/" — intrusive filter 触发</li>
 <li>Layer 1 rule: 单 task &gt; 50 file = halt</li>
 <li>Layer 2 LLM judge: 看 agent 自然语言意图是否合理</li>
-<li>accounter approve 后放行 + flag this agent baseline 允许 bulk</li>
+<li>owner approve 后放行 + flag this agent baseline 允许 bulk</li>
 </ul>
 </div>
 
@@ -520,7 +521,7 @@ user ─[can_view]→ issue ←[references]── file (in any space)           
 
 <p>用户看到一个通过 reference 借用的文件时，UI 明确标识：</p>
 
-<div class="mockup">📎 design-v3.png    [download]
+<div class="mockup">📎 design-spec.png    [download]
    ⤴ borrowed via issue #1234 "Login redesign"
    stored in: 🔒 Alice's private space</div>
 
@@ -571,7 +572,7 @@ canAdminDriveSpace(user, space) bool
   //   OR (kind='workspace' AND user is workspace admin)
   //   OR (kind='team'      AND user is team owner)
   //   OR (kind='private'   AND user is creator)
-  //   OR (kind='agent_output' AND user is agent.accounter)
+  //   OR (kind='agent_output' AND user is agent.owner)
 
 // 新增 — file 级 read (含 reference 路径)
 canReadFile(user, file) bool
@@ -580,16 +581,16 @@ canReadFile(user, file) bool
 <!-- ============================ -->
 <h2 class="red">7. Intrusive filter — drive 维度的规则</h2>
 
-<p>v3 §7.2 描述的两层 intrusive filter 在 drive 上的具体规则：</p>
+<p>主设计 §7.2 描述的两层 intrusive filter 在 drive 上的具体规则：</p>
 
 <table>
 <tr><th>Severity</th><th>Pattern</th><th>Action</th><th>Layer</th></tr>
 <tr><td><span class="priority-pill p1">CRIT</span></td><td>Agent 单 task 下载 &gt; 100 file</td><td>Halt</td><td>1 (rule)</td></tr>
 <tr><td><span class="priority-pill p1">CRIT</span></td><td>Agent 读 kind='private' space 中非 creator 的文件</td><td>Halt</td><td>1 (rule)</td></tr>
-<tr><td><span class="priority-pill p1">CRIT</span></td><td>大文件 (&gt;1GB) 上传 / 下载</td><td>Prompt accounter</td><td>1 (rule)</td></tr>
-<tr><td><span class="priority-pill p2">HIGH</span></td><td>访问含 sensitive tag (hr/finance/legal) 的 space</td><td>Prompt accounter</td><td>1 (rule)</td></tr>
+<tr><td><span class="priority-pill p1">CRIT</span></td><td>大文件 (&gt;1GB) 上传 / 下载</td><td>Prompt owner</td><td>1 (rule)</td></tr>
+<tr><td><span class="priority-pill p2">HIGH</span></td><td>访问含 sensitive tag (hr/finance/legal) 的 space</td><td>Prompt owner</td><td>1 (rule)</td></tr>
 <tr><td><span class="priority-pill p2">HIGH</span></td><td>单 task 下载 / 上传 rate &gt; baseline 5σ</td><td>Notify digest</td><td>1 (rule)</td></tr>
-<tr><td><span class="priority-pill p2">HIGH</span></td><td>Agent 把 file 从 team space move 到 workspace space (放大可见性)</td><td>Prompt accounter</td><td>1 (rule)</td></tr>
+<tr><td><span class="priority-pill p2">HIGH</span></td><td>Agent 把 file 从 team space move 到 workspace space (放大可见性)</td><td>Prompt owner</td><td>1 (rule)</td></tr>
 <tr><td><span class="priority-pill p2">HIGH</span></td><td>Agent 自然语言意图含"export / dump / extract all"</td><td>LLM judge</td><td>2 (judge)</td></tr>
 <tr><td><span class="priority-pill p3">MED</span></td><td>Drive file 30 天无人 access 突然 burst 下载</td><td>Notify digest</td><td>异步</td></tr>
 </table>
@@ -603,7 +604,7 @@ canReadFile(user, file) bool
 span.attributes:
   workspace.id        UUID
   agent.id            UUID  (可空 — 不是 agent 调用时)
-  agent.accounter     UUID  (可空)
+  agent.owner     UUID  (可空)
   caller.user_id      UUID  (resolveActor 的 user)
   file.id             UUID
   file.size_bytes     int64
@@ -620,7 +621,7 @@ span.attributes:
 
 <ul>
 <li><strong>Per-space dashboard</strong>：space owner 看见这个 space 这周被访问 N 次，谁访问了什么</li>
-<li><strong>Per-agent dashboard</strong>：v3 §6 的 agent dashboard 自动包含 drive maturity（这个 agent 读了多少 file，halted 多少次）</li>
+<li><strong>Per-agent dashboard</strong>：主设计 §6 的 agent dashboard 自动包含 drive maturity（这个 agent 读了多少 file，halted 多少次）</li>
 <li><strong>File-level burn-down</strong>：一个文件被谁下载过（点 file 看 access log）</li>
 </ul>
 
@@ -683,10 +684,10 @@ span.attributes:
     <ul>
       <li>kind='agent_output' 新增 + 自动 provisioning</li>
       <li>Agent 写文件 default 路径</li>
-      <li>v3 INV-3 agent first-class 在 drive 落地</li>
+      <li>INV-3 agent first-class 在 drive 落地</li>
     </ul>
   </td>
-  <td>D1 + 系统 §3 accounter</td>
+  <td>D1 + 系统 §3 owner</td>
   <td>2 周</td>
 </tr>
 <tr>
@@ -716,33 +717,20 @@ span.attributes:
 </table>
 
 <!-- ============================ -->
-<h2 class="amber">10. Open questions</h2>
-
-<ol>
-<li><strong>Team space + member 离开 team 怎么办</strong>？立即失去 access vs grace period？建议立即（team 成员已经被移除是明确信号）</li>
-<li><strong>Drive_reference 是否需要 expiration</strong>？比如 share to issue 30 天后自动 revoke？跟 issue close 联动？</li>
-<li><strong>Private space 的"找回"</strong>：员工误把重要文件放 private space 然后离职，HR 怎么取？需要法务+管理员双签的 break-glass 路径？</li>
-<li><strong>Drive search 的权限过滤</strong>：full-text search across spaces，每条结果必须过 canReadFile filter — 大量结果时性能？</li>
-<li><strong>Agent_output space 的生命周期</strong>：agent archive 时 space 怎么处理？参考的 issue 还活着但 file 没了的体验？</li>
-<li><strong>对外分享 (anonymous link)</strong>：v3 假设内部信任，drive 是否需要破例支持？比如 share 一个 design 给客户看？建议<strong>不在 v1 做</strong> — 用 export → 飞书 / email 兜底</li>
-<li><strong>大文件 (&gt;1GB)</strong>：multipart proxy 上传可能慢，要不要支持 pre-signed direct upload？</li>
-</ol>
-
-<!-- ============================ -->
-<h2 class="indigo">附录 — 跟 v3 设计稿的对应关系</h2>
+<h2 class="indigo">附录 — 跟 主设计稿的对应关系</h2>
 
 <table>
 <thead>
-<tr><th>本文档</th><th>v3 对应</th><th>系统级 §对应</th></tr>
+<tr><th>本文档</th><th>主设计对应</th><th>系统级 §对应</th></tr>
 </thead>
 <tbody>
-<tr><td>DRV-1 P1 保护</td><td>v3 INV-1</td><td>§5 Observability</td></tr>
-<tr><td>DRV-2 无 file ACL</td><td>v3 INV-7</td><td>§6 Intrusive filter</td></tr>
-<tr><td>DRV-3 ReBAC 关系图</td><td>v3 §3 ReBAC</td><td>—</td></tr>
-<tr><td>DRV-4 Agent first-class</td><td>v3 INV-3</td><td>§8 Issue×Agent</td></tr>
-<tr><td>DRV-5 全量 OTel audit</td><td>v3 INV-8</td><td>§5 Observability</td></tr>
+<tr><td>DRV-1 P1 保护</td><td>INV-1</td><td>§5 Observability</td></tr>
+<tr><td>DRV-2 无 file ACL</td><td>INV-7</td><td>§6 Intrusive filter</td></tr>
+<tr><td>DRV-3 ReBAC 关系图</td><td>主设计 §3 ReBAC</td><td>—</td></tr>
+<tr><td>DRV-4 Agent first-class</td><td>INV-3</td><td>§8 Issue×Agent</td></tr>
+<tr><td>DRV-5 全量 OTel audit</td><td>INV-8</td><td>§5 Observability</td></tr>
 <tr><td>§3 四种 space kind</td><td>—</td><td>—（drive 独有）</td></tr>
-<tr><td>§7 drive intrusive rule</td><td>v3 §7.2</td><td>§6 规则库</td></tr>
+<tr><td>§7 drive intrusive rule</td><td>主设计 §7.2</td><td>§6 规则库</td></tr>
 </tbody>
 </table>
 
@@ -769,7 +757,7 @@ span.attributes:
 
 <p style="margin-top:80px;text-align:center;color:#999;font-size:12px;">
 <a href="../../../">← 回索引</a> ·
-<a href="../permission-model/">v3 设计稿</a> ·
+<a href="../permission-model/">主设计稿</a> ·
 <a href="../permission-model/system-level-features.html">系统级功能</a>
 </p>
 
