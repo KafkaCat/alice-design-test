@@ -89,12 +89,19 @@
   </div>
 </div>
 
-<h2>待写</h2>
-
-<div class="doc" style="opacity:0.5;">
-  <span style="color:#999;font-weight:600;">Agent runtime 物理隔离 — bubblewrap / cloud microVM / hybrid</span>
-  <div class="meta">未开始</div>
-  <div class="summary">权限模型之外的另一独立维度：agent 跑在哪里、怎么物理隔离。当前 Codex on Linux 是 Landlock 真硬约束；Codex on macOS 几乎裸跑；Claude 完全无 sandbox。需要单独讨论 daemon-on-user vs cloud microVM 的取舍。</div>
+<div class="doc" style="border-left-color: #f97316;">
+  <a href="./design-research/permission-model/runtime-isolation-design.html">④ Runtime 物理隔离 — daemon vs sandbox vs cloud microVM</a>
+  <div class="meta">
+    <span class="tag" style="background:#fed7aa;color:#9a3412;">runtime</span>
+    <span class="tag" style="background:#fed7aa;color:#9a3412;">sandbox</span>
+    <span class="tag" style="background:#fed7aa;color:#9a3412;">physical-isolation</span>
+    最新
+  </div>
+  <div class="summary">
+    权限模型之外的另一独立维度：agent 跑哪里、跟 user 系统其他进程怎么隔离。
+    3 条 ISO invariant，7 种隔离技术对比，Mac vs Linux 真相，两条 Path + Hybrid 推荐。
+    ⚠ Mac 上 codex 当前几乎裸跑（Seatbelt bug → danger-full-access fallback）。
+  </div>
 </div>
 
 <footer>

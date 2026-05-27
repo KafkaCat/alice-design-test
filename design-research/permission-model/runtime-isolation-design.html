@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Alice Runtime 物理隔离 — daemon vs sandbox vs cloud microVM</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 44px 80px;
+    color: #1a1a1a;
+    background: #f7f8fa;
+    line-height: 1.65;
+    font-size: 14.5px;
+  }
+  h1 { font-size: 32px; margin-bottom: 4px; font-weight: 700; letter-spacing: -0.5px; }
+  h2 {
+    font-size: 22px;
+    margin-top: 48px;
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-weight: 600;
+    display: inline-block;
+  }
+  h2.purple { background: #ede9fe; color: #5b21b6; }
+  h2.blue   { background: #dbeafe; color: #1e40af; }
+  h2.green  { background: #dcfce7; color: #166534; }
+  h2.orange { background: #fed7aa; color: #9a3412; }
+  h2.red    { background: #fee2e2; color: #991b1b; }
+  h2.teal   { background: #ccfbf1; color: #115e75; }
+  h2.amber  { background: #fef3c7; color: #92400e; }
+  h2.pink   { background: #fce7f3; color: #9d174d; }
+  h2.indigo { background: #e0e7ff; color: #3730a3; }
+  h2.gray   { background: #f3f4f6; color: #374151; }
+  h3 { font-size: 17px; margin-top: 24px; font-weight: 600; }
+  h4 { font-size: 14px; margin-top: 14px; margin-bottom: 4px; font-weight: 600; color: #555; }
+  .meta { color: #888; font-size: 12.5px; margin-bottom: 28px; }
+  .hero {
+    background: linear-gradient(135deg, #f97316 0%, #dc2626 100%);
+    color: #fff;
+    border-radius: 8px;
+    padding: 28px 36px;
+    margin: 20px 0 32px;
+  }
+  .hero h2 {
+    color: #fff;
+    background: transparent;
+    margin: 0 0 8px;
+    padding: 0;
+    font-size: 22px;
+  }
+  .hero p { margin: 8px 0; font-size: 15px; }
+  .hero strong { color: #fef9c3; }
+
+  code { font-family: "SF Mono", Menlo, Consolas, monospace; background: #f0f0f0; padding: 1px 6px; border-radius: 3px; font-size: 12.5px; }
+  pre { background: #1e1e1e; color: #d4d4d4; padding: 14px 18px; border-radius: 6px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; }
+  pre code { background: transparent; color: inherit; padding: 0; }
+
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13px; background: #fff; border-radius: 6px; overflow: hidden; }
+  th, td { border: 1px solid #e5e7eb; padding: 9px 12px; vertical-align: top; text-align: left; }
+  th { background: #f3f4f6; font-weight: 600; font-size: 12.5px; color: #333; }
+  td.good { background: #ecfdf5; color: #166534; }
+  td.bad  { background: #fef2f2; color: #991b1b; }
+  td.mid  { background: #fffbeb; color: #92400e; }
+  td.na   { background: #f5f5f5; color: #999; }
+  td.strong-good { background: #15803d; color: #fff; font-weight: 600; }
+  td.strong-bad  { background: #b91c1c; color: #fff; font-weight: 600; }
+
+  ul, ol { padding-left: 24px; margin: 8px 0; }
+  li { margin-bottom: 5px; }
+  a { color: #1a73e8; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .stat {
+    background: #fff;
+    border-radius: 6px;
+    padding: 14px 16px;
+    border-left: 3px solid #f97316;
+    text-align: center;
+  }
+  .stat .num { font-size: 26px; font-weight: 700; color: #1f2937; line-height: 1; }
+  .stat .label { font-size: 11.5px; color: #666; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .invariant {
+    background: #fff;
+    border-left: 4px solid #f97316;
+    border-top: 1px solid #e0e0e0;
+    border-right: 1px solid #e0e0e0;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 18px 24px;
+    margin: 16px 0;
+    border-radius: 0 6px 6px 0;
+  }
+  .invariant.critical { border-left-color: #b91c1c; }
+  .invariant h3 { margin-top: 0; display: flex; align-items: center; gap: 10px; }
+  .inv-tag {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 3px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #fff;
+    background: #f97316;
+    letter-spacing: 0.5px;
+  }
+  .inv-tag.critical { background: #b91c1c; }
+
+  .module-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin: 20px 0;
+  }
+  .module {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px 24px;
+    border: 1px solid #e5e7eb;
+    border-top: 3px solid #f97316;
+  }
+  .module.green   { border-top-color: #10b981; }
+  .module.orange  { border-top-color: #f97316; }
+  .module.red     { border-top-color: #ef4444; }
+  .module.purple  { border-top-color: #8b5cf6; }
+  .module.blue    { border-top-color: #3b82f6; }
+  .module.amber   { border-top-color: #f59e0b; }
+  .module.teal    { border-top-color: #14b8a6; }
+  .module h3 { margin-top: 0; margin-bottom: 8px; }
+
+  .callout {
+    padding: 14px 20px;
+    border-radius: 6px;
+    margin: 14px 0;
+    border-left: 4px solid;
+  }
+  .callout.info     { background: #eff6ff; border-color: #3b82f6; }
+  .callout.warn     { background: #fffbeb; border-color: #f59e0b; }
+  .callout.danger   { background: #fef2f2; border-color: #ef4444; }
+  .callout.success  { background: #f0fdf4; border-color: #22c55e; }
+  .callout.note     { background: #faf5ff; border-color: #a855f7; }
+  .callout-title { font-weight: 700; margin-bottom: 4px; display: block; font-size: 14px; }
+
+  .tag {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 4px;
+    font-size: 11.5px;
+    font-weight: 600;
+    margin-right: 4px;
+    margin-bottom: 2px;
+  }
+  .tag-must    { background: #fee2e2; color: #991b1b; }
+  .tag-should  { background: #fed7aa; color: #9a3412; }
+  .tag-could   { background: #fef3c7; color: #92400e; }
+  .tag-later   { background: #e0e7ff; color: #3730a3; }
+  .tag-done    { background: #dcfce7; color: #166534; }
+
+  .spectrum {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin: 14px 0;
+  }
+  .spectrum-bar {
+    height: 8px;
+    background: linear-gradient(to right, #fbbf24 0%, #f97316 35%, #dc2626 70%, #7f1d1d 100%);
+    border-radius: 4px;
+    position: relative;
+    margin: 24px 12px 30px;
+  }
+  .spectrum-mark {
+    position: absolute;
+    top: -8px;
+    transform: translateX(-50%);
+    width: 16px;
+    height: 24px;
+    border-radius: 4px;
+    background: #1f2937;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    text-align: center;
+    line-height: 24px;
+  }
+  .spectrum-mark .label {
+    position: absolute;
+    top: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: transparent;
+    color: #374151;
+    white-space: nowrap;
+    font-size: 11px;
+    font-weight: 500;
+    width: auto;
+  }
+  .spectrum .legend {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11.5px;
+    color: #6b7280;
+    margin: 6px 12px 0;
+  }
+
+  .tech-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin: 12px 0;
+  }
+  .tech-card h3 { margin-top: 0; display: flex; align-items: center; gap: 10px; }
+  .tech-card .icon { font-size: 22px; }
+  .tech-card .specs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin: 10px 0;
+    font-size: 12.5px;
+  }
+  .tech-card .spec-item {
+    background: #f9fafb;
+    border-radius: 4px;
+    padding: 8px 10px;
+  }
+  .tech-card .spec-item .key { color: #6b7280; font-size: 11px; }
+  .tech-card .spec-item .val { font-weight: 600; }
+  .tech-card.rec { border-left: 4px solid #15803d; }
+  .tech-card.alt { border-left: 4px solid #6366f1; }
+  .tech-card.no  { border-left: 4px solid #6b7280; opacity: 0.7; }
+
+  .platform-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 1fr;
+    gap: 12px;
+    align-items: start;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 10px 0;
+  }
+  .platform-row .icon-cell {
+    text-align: center;
+    font-size: 28px;
+  }
+  .platform-row .platform-name {
+    font-weight: 600;
+    margin-top: 4px;
+    font-size: 13px;
+  }
+  .platform-row .status-cell { font-size: 13px; }
+  .platform-row .recommendation { font-size: 13px; color: #555; }
+  .platform-row.linux { border-left: 4px solid #10b981; }
+  .platform-row.mac   { border-left: 4px solid #f59e0b; }
+  .platform-row.win   { border-left: 4px solid #6b7280; }
+
+  .path-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 22px 26px;
+    margin: 16px 0;
+    border-top: 4px solid #6366f1;
+  }
+  .path-card.path-a { border-top-color: #10b981; }
+  .path-card.path-b { border-top-color: #f59e0b; }
+  .path-card.path-c { border-top-color: #8b5cf6; }
+  .path-card h3 { margin-top: 0; font-size: 18px; }
+  .path-card .tag-line { color: #6b7280; font-size: 13px; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<h1>Runtime 物理隔离 — daemon vs sandbox vs cloud microVM</h1>
+<div class="meta">配套主设计 · 持续迭代中 · 权限模型之外的另一独立维度</div>
+
+<div class="hero">
+<h2>这份文档讲什么</h2>
+<p>主设计的 <strong>permission / audit / accountability</strong> 模型是<strong>逻辑层</strong>防御。这份是<strong>物理层</strong>防御 — agent 进程实际跑在哪里？跟 user 系统其他进程怎么隔离？跑出失控 tool call 时，OS 能挡住吗？</p>
+<p>核心张力：<strong>"daemon-on-user-machine" 哲学</strong>（agent 跑在 user 自己机器，便宜、白盒、低延迟）<strong>vs "strong isolation"</strong>（agent 跑在隔离 VM，安全、可承受不可信代码）。这两者本质冲突，没有银弹。本文给两条 path + 一个 hybrid 推荐。</p>
+</div>
+
+<div class="stat-grid">
+  <div class="stat"><div class="num">3</div><div class="label">底座 (claude/codex/hermes)</div></div>
+  <div class="stat"><div class="num">2</div><div class="label">主流 OS (linux/mac)</div></div>
+  <div class="stat"><div class="num">7</div><div class="label">隔离技术对比</div></div>
+  <div class="stat"><div class="num">~4 mo</div><div class="label">完整 roadmap</div></div>
+</div>
+
+<!-- ============================ -->
+<h2 class="orange">1. 现状摘要 — 隔离强度参差不齐</h2>
+
+<h3>1.1 每个底座 × 每个 OS 的真相</h3>
+
+<table>
+<thead>
+<tr><th>底座</th><th>Linux 实际隔离</th><th>macOS 实际隔离</th><th>Windows</th></tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Codex</strong></td>
+  <td class="good">✅ Landlock workspace-write + network_access (硬约束)</td>
+  <td class="bad">❌ <strong>fallback 到 danger-full-access</strong> — Seatbelt bug (openai/codex#10390)</td>
+  <td class="na">N/A</td>
+</tr>
+<tr>
+  <td><strong>Claude</strong></td>
+  <td class="bad">❌ 无 OS sandbox，靠 per-tool approval</td>
+  <td class="bad">❌ 无 OS sandbox，靠 per-tool approval</td>
+  <td class="bad">❌ 无 OS sandbox</td>
+</tr>
+<tr>
+  <td><strong>Hermes</strong></td>
+  <td class="bad">❌ 看不到 specific isolation 逻辑</td>
+  <td class="bad">❌ 同上</td>
+  <td class="na">N/A</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout danger">
+<span class="callout-title">⚠ 最严重的事实</span>
+公司里一半员工用 Mac，<strong>macOS 上跑 codex 就是裸跑</strong>。`server/internal/daemon/execenv/codex_sandbox.go:60-80` 明文写："codex on macOS: seatbelt ignores sandbox_workspace_write.network_access → fall back to <code>danger-full-access</code> so the Alice CLI can reach the API"。Linux 上的 Landlock 是真硬约束；Mac 上的"沙箱"实际是没沙箱。
+</div>
+
+<h3>1.2 Alice daemon 已经做了什么</h3>
+
+<ul>
+<li><span class="tag tag-done">DONE</span> Per-task workdir：<code>~/alice_workspaces/&lt;workspace&gt;/&lt;task&gt;/</code></li>
+<li><span class="tag tag-done">DONE</span> Per-task <code>CODEX_HOME</code>：避免 codex 看到系统级 <code>~/.codex/skills/</code></li>
+<li><span class="tag tag-done">DONE</span> Git worktree per task：repo 隔离</li>
+<li><span class="tag tag-done">DONE</span> Codex Linux 真 sandbox（Landlock）</li>
+<li><span class="tag tag-must">MISSING</span> Per-task <code>CLAUDE_HOME</code>：claude 仍能直接读写系统 <code>~/.claude/</code></li>
+<li><span class="tag tag-must">MISSING</span> macOS 真 sandbox</li>
+<li><span class="tag tag-must">MISSING</span> Cloud runtime 路径（之前 multica 留了 stub，现在 alice 已删）</li>
+</ul>
+
+<!-- ============================ -->
+<h2 class="purple">2. Assumptions</h2>
+
+<ol>
+<li><strong>A1 — Agent runtime ≠ trusted code</strong>。Agent 拿到 LLM 输出后会真的执行 tool call。即使 LLM 是合作的，prompt injection / 错误推理可能导致 destructive command。Runtime 必须假设里面跑的代码<strong>不可信</strong>。</li>
+<li><strong>A2 — User 机器是已经被信任的环境</strong>。User 的 mac 上已经有他的 git config、SSH key、cloud token、浏览器 cookie。agent 跑在这台机器上，跟 user 的其他进程<strong>是 peer</strong>，不是 hostile 邻居。</li>
+<li><strong>A3 — 公司内部信任</strong>（同主设计 A1）。同事写的 agent 不是 hostile，但<strong>会 fail-open</strong>（agent 不是恶意的，但可能犯错）。</li>
+<li><strong>A4 — Agent 行为 emergent</strong>。Capability 预先列不全，靠 sandbox 兜底（防御 agent 没预想到的 destructive action）。</li>
+<li><strong>A5 — Latency 敏感</strong>。Agent task 启动 cold start &gt; 5s 用户感觉糟糕；&gt; 30s 不可用。这是大多数 cloud microVM 方案的死穴。</li>
+<li><strong>A6 — Cost 敏感</strong>。Alice 内部工具不应该比 user 自己跑 codex CLI 贵 10 倍。Cloud sandbox 每分钟 0.01 美元，密集使用一天就 $10+/agent。</li>
+<li><strong>A7 — Mac &gt; Linux &gt; Windows</strong> 是用户实际分布。公司绝大多数员工用 Mac，少数 Linux dev，几乎没人 Windows。设计要照顾 Mac。</li>
+</ol>
+
+<!-- ============================ -->
+<h2 class="red">3. Invariants — 物理隔离的三条原则</h2>
+
+<div class="invariant critical">
+<h3><span class="inv-tag critical">ISO-1</span>Filesystem 边界是底线</h3>
+<p><strong>陈述</strong>：无论选哪种 sandbox 方案，<strong>agent 进程能写的文件路径必须可枚举、可声明</strong>。默认只能写 task workdir，其他路径（<code>~/.ssh</code>、<code>~/.aws</code>、<code>~/.alice</code>、prod credentials、user 其他项目）必须显式 grant。</p>
+<p>这个 invariant 跟<strong>主设计 INV-7 (intrusive filter)</strong> 不一样 — 那是 logical 层防御（"agent 想读 X，我们 detect 并 prompt"），ISO-1 是 physical 层防御（"agent 进程根本访问不到 X 那个 syscall"）。</p>
+</div>
+
+<div class="invariant">
+<h3><span class="inv-tag">ISO-2</span>Network 边界至少 deny-by-default</h3>
+<p><strong>陈述</strong>：Agent 默认只能 outbound 到几个白名单：Alice API、model provider、显式声明的 MCP server。Random outbound（C&C、data exfiltration、bitcoin mining）必须 fail。</p>
+<p><strong>当前现状</strong>：codex Linux Landlock 支持 <code>network_access = true</code> （allow all）/ <code>false</code> （allow none），<strong>没有 allowlist 模式</strong>。Mac fallback 后 network 完全开放。这个 invariant 当前 <strong>不满足</strong>。</p>
+</div>
+
+<div class="invariant">
+<h3><span class="inv-tag">ISO-3</span>白盒 &gt; 黑盒，能观测 &gt; 物理隔离强度</h3>
+<p><strong>陈述</strong>：当物理隔离强度 vs 可观测性冲突时，<strong>选可观测性</strong>。一个完美隔离但开发者看不见在做什么的 sandbox（如 e2b 全 cloud），比一个轻量但 daemon 能看到所有 syscall / file access / network 的 sandbox 更糟。</p>
+<p>这跟主设计 INV-8 (audit-over-ACL) 一致 — Alice 优先做透明度，不做不可见的强 enforce。</p>
+</div>
+
+<!-- ============================ -->
+<h2 class="teal">4. 隔离强度 Spectrum — 一张图看清楚</h2>
+
+<div class="spectrum">
+<div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">隔离强度（左→右 由弱到强）：</div>
+<div class="spectrum-bar">
+  <div class="spectrum-mark" style="left:4%;">①<div class="label">无 sandbox</div></div>
+  <div class="spectrum-mark" style="left:18%;">②<div class="label">per-task workdir</div></div>
+  <div class="spectrum-mark" style="left:32%;">③<div class="label">Codex Landlock</div></div>
+  <div class="spectrum-mark" style="left:48%;">④<div class="label">bubblewrap/sandbox-exec</div></div>
+  <div class="spectrum-mark" style="left:62%;">⑤<div class="label">Docker</div></div>
+  <div class="spectrum-mark" style="left:76%;">⑥<div class="label">gVisor</div></div>
+  <div class="spectrum-mark" style="left:90%;">⑦<div class="label">microVM / e2b</div></div>
+</div>
+<div class="legend">
+  <span>跑 user 机器，零延迟</span>
+  <span>必须 cloud，秒级 cold start</span>
+</div>
+</div>
+
+<table>
+<thead>
+<tr><th>等级</th><th>方案</th><th>Filesystem 隔离</th><th>Network 隔离</th><th>启动延迟</th><th>跨平台</th><th>Cost</th></tr>
+</thead>
+<tbody>
+<tr>
+  <td>①</td>
+  <td>无 sandbox<br><span style="color:#6b7280;font-size:11px;">Claude / Hermes 现状</span></td>
+  <td class="strong-bad">无</td>
+  <td class="strong-bad">无</td>
+  <td class="good">0</td>
+  <td class="good">✅ 所有</td>
+  <td class="good">$0</td>
+</tr>
+<tr>
+  <td>②</td>
+  <td>Per-task workdir<br><span style="color:#6b7280;font-size:11px;">软约束 (env var hint)</span></td>
+  <td class="bad">弱 (进程仍能访问其他路径)</td>
+  <td class="bad">无</td>
+  <td class="good">~50ms</td>
+  <td class="good">✅ 所有</td>
+  <td class="good">$0</td>
+</tr>
+<tr>
+  <td>③</td>
+  <td>Codex Landlock<br><span style="color:#6b7280;font-size:11px;">Linux only</span></td>
+  <td class="good">强 (syscall enforce)</td>
+  <td class="mid">all/none binary, 无 allowlist</td>
+  <td class="good">~50ms</td>
+  <td class="bad">Linux only</td>
+  <td class="good">$0</td>
+</tr>
+<tr>
+  <td>④</td>
+  <td>bubblewrap (Linux) / sandbox-exec (mac)<br><span style="color:#6b7280;font-size:11px;">轻量级 namespace / Seatbelt</span></td>
+  <td class="good">强</td>
+  <td class="mid">Linux 可配 allowlist；Mac 同 Seatbelt 局限</td>
+  <td class="good">~100ms</td>
+  <td class="mid">Linux + Mac</td>
+  <td class="good">$0</td>
+</tr>
+<tr>
+  <td>⑤</td>
+  <td>Docker container per task</td>
+  <td class="good">强</td>
+  <td class="good">完整 firewall</td>
+  <td class="mid">1-3s</td>
+  <td class="mid">需要 user 装 docker</td>
+  <td class="mid">CPU/RAM overhead</td>
+</tr>
+<tr>
+  <td>⑥</td>
+  <td>gVisor (Google application-kernel)</td>
+  <td class="good">很强</td>
+  <td class="good">完整</td>
+  <td class="mid">~200ms</td>
+  <td class="bad">Linux only</td>
+  <td class="mid">CPU overhead 30%</td>
+</tr>
+<tr>
+  <td>⑦</td>
+  <td>microVM (Firecracker) / e2b cloud<br><span style="color:#6b7280;font-size:11px;">独立 kernel</span></td>
+  <td class="strong-good">极强</td>
+  <td class="strong-good">完整</td>
+  <td class="bad">125ms (warm) / 1-5s (cold)</td>
+  <td class="bad">必须 cloud</td>
+  <td class="bad">$1-10/day/agent</td>
+</tr>
+</tbody>
+</table>
+
+<!-- ============================ -->
+<h2 class="amber">5. 平台真相 — Mac 是最大头疼</h2>
+
+<div class="platform-row mac">
+<div class="icon-cell"><div>🍎</div><div class="platform-name">macOS</div></div>
+<div class="status-cell">
+  <strong style="color:#92400e;">当前 = 几乎裸跑</strong><br>
+  Codex 因 Seatbelt bug fallback 到 danger-full-access<br>
+  Claude 完全无 OS sandbox<br>
+  Apple 的 <code>sandbox-exec</code> 可用但<strong>官方 deprecated</strong>，profile 语法少文档，App Store apps 用的 <code>App Sandbox</code> 不适合 CLI 进程
+</div>
+<div class="recommendation">
+  <strong>推荐路径</strong>：<br>
+  ① 短期：sandbox-exec + 自定义 sbpl profile（接受 deprecated 风险）<br>
+  ② 中期：等 Apple 提供新 API 或 codex 修 Seatbelt bug<br>
+  ③ 长期 / 严肃 task：cloud runtime opt-in
+</div>
+</div>
+
+<div class="platform-row linux">
+<div class="icon-cell"><div>🐧</div><div class="platform-name">Linux</div></div>
+<div class="status-cell">
+  <strong style="color:#166534;">当前 = codex 已硬隔离</strong><br>
+  Landlock LSM (kernel 5.13+, 2021) 是 first-class filesystem sandbox<br>
+  bubblewrap (flatpak 用的) + nsjail 都成熟<br>
+  Docker 装机率高
+</div>
+<div class="recommendation">
+  <strong>推荐路径</strong>：<br>
+  ① Codex 维持 Landlock（已 OK）<br>
+  ② Claude / Hermes 接 bubblewrap 包一层<br>
+  ③ Network allowlist 用 nftables / firejail
+</div>
+</div>
+
+<div class="platform-row win">
+<div class="icon-cell"><div>🪟</div><div class="platform-name">Windows</div></div>
+<div class="status-cell">
+  <strong style="color:#6b7280;">当前 = 不支持</strong><br>
+  Job Object + AppContainer 理论上够用<br>
+  但公司用户基数极小，工程投入 ROI 不值
+</div>
+<div class="recommendation">
+  <strong>推荐路径</strong>：<br>
+  暂不支持。要用就在 WSL2 里跑 (变成 Linux path)
+</div>
+</div>
+
+<!-- ============================ -->
+<h2 class="indigo">6. 两条 path + hybrid 推荐</h2>
+
+<div class="path-card path-a">
+<h3>Path A — 守 user-hardware-trust，加强软隔离</h3>
+<div class="tag-line">"agent 跑用户机器" 这个哲学不变。在 user 机器上做更强的 OS-level sandbox。</div>
+
+<h4>具体动作</h4>
+<ul>
+<li><strong>Claude</strong> 加 per-task <code>CLAUDE_HOME</code>，跟 codex 同思路（symlink 用户级 skills 进 per-task home + 拒绝系统目录）</li>
+<li><strong>Linux</strong>：Claude / Hermes 进程包一层 <strong>bubblewrap</strong> — 跟 codex Landlock 同强度但跨底座统一</li>
+<li><strong>macOS</strong>：写 sandbox-exec sbpl profile，apply 到 codex / claude / hermes 启动命令。接受 deprecated 风险作 best-effort</li>
+<li><strong>Network</strong>：用 nftables (Linux) 或 LSP filter (Mac) 把 outbound 限到 allowlist。这层 daemon 启动时 setup，task 进程继承</li>
+</ul>
+
+<h4>优劣</h4>
+<table>
+<tr>
+  <td class="good"><strong>优势</strong></td>
+  <td>✅ 0 cost ✅ 0 latency ✅ 跟现有 daemon 架构兼容 ✅ user 跑自己机器没心理 friction</td>
+</tr>
+<tr>
+  <td class="bad"><strong>劣势</strong></td>
+  <td>❌ Mac sandbox-exec deprecated，未来可能彻底没用 ❌ 隔离上限不如 microVM ❌ network allowlist 实现复杂 ❌ user 机器配置漂移导致 sandbox profile 失效</td>
+</tr>
+</table>
+</div>
+
+<div class="path-card path-b">
+<h3>Path B — Cloud microVM，sensitive task opt-in</h3>
+<div class="tag-line">日常 agent 仍在 user 机器跑（Path A 的 baseline），但 service agent / 大批量数据访问 / destructive command 走 cloud microVM。</div>
+
+<h4>具体动作</h4>
+<ul>
+<li><strong>Cloud runtime 服务</strong>：alice server 接 <a href="https://e2b.dev">e2b</a> 或自建 Firecracker pool</li>
+<li><strong>Task routing</strong>：daemon 根据 agent.permission_mode 和 intrusive filter 决定本地跑还是 cloud</li>
+<li><strong>状态同步</strong>：cloud sandbox 里 agent 的 workdir / memory pointer 通过 alice sync engine pull/push</li>
+<li><strong>触发条件 (默认)</strong>：
+  <ul>
+    <li>所有 service mode agent → cloud</li>
+    <li>普通 agent 任务里包含 destructive tool call → upgrade 到 cloud（owner approve 后）</li>
+    <li>访问 sensitive tag 资源 → cloud</li>
+  </ul>
+</li>
+</ul>
+
+<h4>优劣</h4>
+<table>
+<tr>
+  <td class="good"><strong>优势</strong></td>
+  <td>✅ 隔离上限是 industry-grade microVM ✅ 平台独立（user 在 Mac / Linux / Windows 都跑得动） ✅ user 机器宕机也能 continue ✅ 多个 agent 真并行</td>
+</tr>
+<tr>
+  <td class="bad"><strong>劣势</strong></td>
+  <td>❌ Cold start 1-5s ❌ cost 持续累积 ❌ user 看不到 cloud 进程在做什么（破 ISO-3 白盒原则） ❌ 跟 user 本地状态（credentials / workspace 实际 git checkout）同步复杂 ❌ 离开 daemon-on-user-machine 哲学</td>
+</tr>
+</table>
+
+<h4>不破坏白盒的关键设计</h4>
+<div class="callout note">
+<span class="callout-title">Cloud runtime 不能是黑盒</span>
+为满足 ISO-3，cloud sandbox 必须让 user / owner 实时看见里面在做什么。具体：每个 tool call 通过 sync engine push 回 alice，UI 跟 agent 在本地跑时同形态。<strong>"agent 跑哪里"是 ops 决策，"agent 在做什么"必须永远 visible</strong>。这是 e2b vs Devin 的核心区别 — e2b 提供 sandbox 但 user 控制 UX；Devin 把整个 box 黑了。
+</div>
+</div>
+
+<div class="path-card path-c">
+<h3>Path C (推荐) — Hybrid: Path A 是 default + Path B 是 opt-in</h3>
+<div class="tag-line">最实际的方案 — 不是二选一。99% 任务跑 Path A（low latency / cost），少数高风险任务走 Path B（强隔离）。</div>
+
+<h4>分流策略</h4>
+<table>
+<tr><th>场景</th><th>跑哪里</th><th>说明</th></tr>
+<tr><td>普通 user_equivalent agent 日常 task</td><td class="good">Path A (user 机器)</td><td>占比 99%+</td></tr>
+<tr><td>Service mode agent 任何 task</td><td class="mid">Path B (cloud)</td><td>elevated access 不能跑用户机器，跨员工 access HR/finance 等敏感数据</td></tr>
+<tr><td>用户机器是 Windows</td><td class="mid">Path B</td><td>Windows 不投入做 native sandbox</td></tr>
+<tr><td>普通 agent 触发 critical intrusive filter (DROP / push --force)</td><td class="mid">Path B + owner approve</td><td>同时升 cloud + 等 owner 决定</td></tr>
+<tr><td>Owner 离线 + 任务紧急</td><td class="mid">Path B (限时 30 min)</td><td>cloud 跑 + auto-halt if owner 不在 30min 内 review</td></tr>
+<tr><td>Agent 大批量 data access (&gt;100 file)</td><td class="mid">Path B</td><td>避免 user 机器变 data exfiltration 跳板</td></tr>
+</table>
+
+<h4>实施顺序</h4>
+<ol>
+<li><strong>Phase 1</strong>: Path A 在 Linux 上把 Claude / Hermes 接 bubblewrap (4 周)</li>
+<li><strong>Phase 2</strong>: Path A 在 Mac 上写 sandbox-exec profile 给三个底座 (3 周)</li>
+<li><strong>Phase 3</strong>: 加 Claude per-task <code>CLAUDE_HOME</code> (1 周)</li>
+<li><strong>Phase 4</strong>: Path B - e2b POC (单 service agent 跑通) (3 周)</li>
+<li><strong>Phase 5</strong>: Path B - 接到 service agent 全量 (2 周)</li>
+<li><strong>Phase 6</strong>: Hybrid 分流策略 + UI 显示 "agent runs here" indicator (2 周)</li>
+</ol>
+</div>
+
+<!-- ============================ -->
+<h2 class="green">7. 隔离技术深度 — 7 种方案逐个看</h2>
+
+<div class="tech-card rec">
+<h3><span class="icon">🐧</span>bubblewrap (Linux, 推荐 Path A 的 Linux 实现)</h3>
+<div class="specs">
+  <div class="spec-item"><div class="key">类型</div><div class="val">Namespace + seccomp</div></div>
+  <div class="spec-item"><div class="key">平台</div><div class="val">Linux only</div></div>
+  <div class="spec-item"><div class="key">启动</div><div class="val">~50ms</div></div>
+  <div class="spec-item"><div class="key">维护方</div><div class="val">Containers / Flatpak</div></div>
+</div>
+<h4>为什么推荐</h4>
+<ul>
+<li>Setuid binary，user 跑不用 root。Flatpak 已经在用了，几亿桌面跑过</li>
+<li>命令行接口干净：<code>bwrap --ro-bind / / --bind ./workdir /workdir --unshare-all sh</code></li>
+<li>Filesystem + namespace + seccomp 一站式，跟 codex Landlock 同强度但跨底座统一</li>
+<li>Daemon 包装代码量小（~100 行）</li>
+</ul>
+<h4>限制</h4>
+<ul>
+<li>Linux only。Mac 不能复用</li>
+<li>Network 隔离不是它强项，要配合 nftables / firejail</li>
+</ul>
+</div>
+
+<div class="tech-card rec">
+<h3><span class="icon">🍎</span>sandbox-exec (macOS, Path A 的 Mac 实现 — 唯一可行)</h3>
+<div class="specs">
+  <div class="spec-item"><div class="key">类型</div><div class="val">Seatbelt sbpl profile</div></div>
+  <div class="spec-item"><div class="key">平台</div><div class="val">macOS only</div></div>
+  <div class="spec-item"><div class="key">启动</div><div class="val">~100ms</div></div>
+  <div class="spec-item"><div class="key">状态</div><div class="val" style="color:#b91c1c;">官方 deprecated</div></div>
+</div>
+<h4>为什么仍要用</h4>
+<ul>
+<li>Mac 上<strong>没有其他 binary-launchable sandbox</strong>。App Sandbox 只给签名 app，code signing 流程太重</li>
+<li>codex 已经在用 Seatbelt (但 fallback)，证明 Apple 自己内部还在维护</li>
+<li>对 CLI 进程是唯一选项</li>
+</ul>
+<h4>怎么做</h4>
+<pre><code># Alice 写一份 sbpl profile (Scheme-like syntax)
+(version 1)
+(deny default)
+(allow process-fork process-exec)
+(allow file-read* (subpath "/usr") (subpath "/System") (subpath "/Library"))
+(allow file-read* file-write* (subpath "/Users/&lt;user&gt;/alice_workspaces/&lt;task&gt;"))
+(allow network-outbound (remote tcp "alice-api.machine-pulse.net:443"))
+;; Deny by default for everything else
+
+# Daemon 启动 codex/claude 时
+sandbox-exec -f /tmp/alice-task-&lt;id&gt;.sb codex exec ...</code></pre>
+<h4>风险</h4>
+<ul>
+<li>Deprecated 没新文档，sbpl 语法靠 reverse engineering 已有 profile（如 Apple Quarantine / iOS WebKit）</li>
+<li>Codex 那个 network_access bug 同样会影响我们 — 但因为我们写自己的 profile，可以避开（明确 allow network-outbound to specific host）</li>
+<li>未来 macOS major version 可能彻底废除 — 但短期 (1-3 年) 仍可用</li>
+</ul>
+</div>
+
+<div class="tech-card alt">
+<h3><span class="icon">📦</span>Docker container per task</h3>
+<div class="specs">
+  <div class="spec-item"><div class="key">类型</div><div class="val">OCI container</div></div>
+  <div class="spec-item"><div class="key">平台</div><div class="val">Linux native, Mac 虚拟化</div></div>
+  <div class="spec-item"><div class="key">启动</div><div class="val">1-3s</div></div>
+  <div class="spec-item"><div class="key">用户 friction</div><div class="val">必须装 docker</div></div>
+</div>
+<h4>为什么不是首选</h4>
+<ul>
+<li>Mac 上 docker 跑在 Linux VM 里 (Docker Desktop / colima)，已经是某种"用户机器上的 VM" — 但 1-3s 启动 + 内存占用大</li>
+<li>Mac 上员工要先装 docker，friction 大</li>
+<li>Daemon 自己 spawn container 比 bubblewrap 重得多（image management / network / volume）</li>
+</ul>
+<h4>什么时候用</h4>
+<ul>
+<li>开发环境 dogfooding 时可能合适</li>
+<li>未来如果走 Path B 但不想用 cloud，可以本地 Docker pool 替代 cloud microVM (但 hybrid 设计已经覆盖这个 case)</li>
+</ul>
+</div>
+
+<div class="tech-card no">
+<h3><span class="icon">🔬</span>gVisor (Google application-kernel)</h3>
+<div class="specs">
+  <div class="spec-item"><div class="key">类型</div><div class="val">User-space kernel</div></div>
+  <div class="spec-item"><div class="key">平台</div><div class="val">Linux only</div></div>
+  <div class="spec-item"><div class="key">启动</div><div class="val">~200ms</div></div>
+  <div class="spec-item"><div class="key">CPU overhead</div><div class="val">~30%</div></div>
+</div>
+<h4>不选的原因</h4>
+<ul>
+<li>Linux only — Mac 用户得不到任何好处</li>
+<li>CPU overhead 大 — agent 跑代码时 30% 性能损失明显</li>
+<li>Setup 不简单 — 不像 bubblewrap 一行命令</li>
+<li>用例匹配差 — gVisor 主要给 cloud-side multi-tenant 用，user 机器上跑 overkill</li>
+</ul>
+</div>
+
+<div class="tech-card alt">
+<h3><span class="icon">☁</span>e2b (Cloud sandbox SDK)</h3>
+<div class="specs">
+  <div class="spec-item"><div class="key">类型</div><div class="val">Firecracker microVM SaaS</div></div>
+  <div class="spec-item"><div class="key">平台</div><div class="val">远端，client 任意</div></div>
+  <div class="spec-item"><div class="key">启动</div><div class="val">~200ms (warm) / 1-2s (cold)</div></div>
+  <div class="spec-item"><div class="key">Cost</div><div class="val">~$0.0001/sec/box</div></div>
+</div>
+<h4>为什么是 Path B 的最佳选项</h4>
+<ul>
+<li>API-first，daemon 调用清晰：<code>sandbox = e2b.create(); sandbox.run("codex exec ...")</code></li>
+<li>支持 file upload / download，跟 alice workdir 同步可行</li>
+<li>跑在 AWS / GCP 上，地理 location 可选靠近 model provider</li>
+<li>跟 OpenAI / Anthropic 已经合作过的 stack</li>
+</ul>
+<h4>风险 / 决策点</h4>
+<ul>
+<li>3rd party SaaS — code/data 经过 e2b 服务器 (但 e2b 有 SOC2 / zero-retention 选项)</li>
+<li>Cost 累积 — 默认所有 agent 上 cloud 会贵；Hybrid 分流是为这个</li>
+<li>如果要避免 3rd party，自建 Firecracker 也行但运维负担大 (gVisor 同理)</li>
+</ul>
+</div>
+
+<div class="tech-card no">
+<h3><span class="icon">🔥</span>Firecracker (AWS Lambda 同款)</h3>
+<div class="specs">
+  <div class="spec-item"><div class="key">类型</div><div class="val">KVM microVM</div></div>
+  <div class="spec-item"><div class="key">平台</div><div class="val">Linux host only</div></div>
+  <div class="spec-item"><div class="key">启动</div><div class="val">125ms (warm)</div></div>
+  <div class="spec-item"><div class="key">运维</div><div class="val">很重</div></div>
+</div>
+<h4>不选的原因</h4>
+<ul>
+<li>自建 microVM pool = 运维 hell。snapshot management / network bridge / kernel 选择，全要自己来</li>
+<li>跟 e2b 比，自建 Firecracker 节省的是 SaaS 单价，但<strong>增加的是 SRE 人力</strong></li>
+<li>Alice 体量不大，e2b 单价完全可承受，没必要自建</li>
+</ul>
+</div>
+
+<div class="tech-card no">
+<h3><span class="icon">🪟</span>Windows Job Object + AppContainer</h3>
+<div class="specs">
+  <div class="spec-item"><div class="key">类型</div><div class="val">Windows native</div></div>
+  <div class="spec-item"><div class="key">平台</div><div class="val">Windows only</div></div>
+  <div class="spec-item"><div class="key">启动</div><div class="val">~100ms</div></div>
+  <div class="spec-item"><div class="key">复杂度</div><div class="val">非常高</div></div>
+</div>
+<h4>不选的原因</h4>
+<ul>
+<li>Windows API 复杂，没有 bubblewrap 那种 setuid binary 的简洁等价</li>
+<li>公司基本没人用 Windows</li>
+<li>替代方案：要 Windows 就 WSL2，自动变成 Linux path</li>
+</ul>
+</div>
+
+<!-- ============================ -->
+<h2 class="blue">8. 工程设计</h2>
+
+<h3>8.1 Daemon 启动 agent 的统一抽象</h3>
+
+<pre><code>// 不管底座是 codex / claude / hermes，daemon 用同一个 sandbox 包装
+type RuntimeSandbox interface {
+    Wrap(cmd *exec.Cmd, policy SandboxPolicy) error
+}
+
+type SandboxPolicy struct {
+    // ISO-1: filesystem
+    WritablePaths []string        // 默认: task workdir
+    ReadablePaths []string        // 默认: workdir + 系统 dylib / lib
+    DeniedPaths   []string        // 默认: ~/.ssh, ~/.aws, ~/.alice, prod creds
+
+    // ISO-2: network
+    NetworkMode   string          // "deny" | "allowlist" | "all"
+    AllowedHosts  []string        // alice-api, model provider, declared MCP servers
+
+    // ISO-3: observability
+    StraceOutput  io.Writer       // 写 OTel span 用
+}
+
+// 平台分发
+func NewSandbox(os string) RuntimeSandbox {
+    switch os {
+    case "linux":  return &amp;BubblewrapSandbox{}
+    case "darwin": return &amp;SandboxExecSandbox{}
+    default:       return &amp;NoOpSandbox{}  // fallback (with warning)
+    }
+}</code></pre>
+
+<h3>8.2 三个底座如何被包</h3>
+
+<table>
+<tr><th>底座</th><th>当前启动方式</th><th>加 sandbox 后</th></tr>
+<tr>
+  <td>Codex</td>
+  <td><code>codex exec ...</code> 用 codex 自带 Seatbelt/Landlock</td>
+  <td>外层加一层 sandbox 兜底 — codex 自己的内层 sandbox 仍 active 作为冗余</td>
+</tr>
+<tr>
+  <td>Claude</td>
+  <td><code>claude -p ...</code> 无 sandbox</td>
+  <td>外层 sandbox = 唯一防御。Linux bwrap / Mac sandbox-exec 启动</td>
+</tr>
+<tr>
+  <td>Hermes</td>
+  <td>具体启动方式 daemon 已知</td>
+  <td>同 Claude 路径</td>
+</tr>
+</table>
+
+<h3>8.3 Network allowlist 的实现</h3>
+
+<div class="module-grid">
+
+<div class="module blue">
+<h3>Linux: nftables / firejail</h3>
+<ul>
+<li>Daemon 启动时 setup nftables rule for task UID</li>
+<li>Outbound 限 alice-api.machine-pulse.net + api.anthropic.com + 声明的 MCP</li>
+<li>Task 进程继承 UID，自动应用 rule</li>
+<li>Task 结束清理 rule</li>
+</ul>
+</div>
+
+<div class="module blue">
+<h3>macOS: sbpl network rule</h3>
+<ul>
+<li>sandbox-exec profile 里写 <code>(allow network-outbound (remote tcp "host:port"))</code></li>
+<li>但 sbpl 不支持 hostname allowlist (只接 IP / port)</li>
+<li>workaround: daemon 启动前 DNS resolve allowlist host，写入 sbpl 当时 IP — 重启时 refresh</li>
+<li>不完美但比裸跑好</li>
+</ul>
+</div>
+
+</div>
+
+<h3>8.4 Cloud runtime 路径 (Path B) 工程设计</h3>
+
+<pre><code>// alice server 端: 新增 cloud_runtime package
+type CloudRuntime interface {
+    // 启动一个 sandbox，准备 agent 运行环境
+    Start(ctx context.Context, agent Agent, task Task) (*Sandbox, error)
+
+    // 执行 agent 命令，stream stdout/stderr 回 alice
+    Exec(ctx context.Context, sb *Sandbox, cmd string) (&lt;-chan Event, error)
+
+    // 上传 task workdir 内容
+    UploadWorkdir(sb *Sandbox, localPath string) error
+
+    // 下载 task 输出
+    DownloadResult(sb *Sandbox, paths []string) (io.Reader, error)
+
+    // 杀掉 sandbox
+    Terminate(sb *Sandbox) error
+}
+
+// 实现: e2b SDK 包装
+type E2BRuntime struct { client *e2b.Client; ... }
+
+// Daemon 看到 task.cloud_required = true 时
+// 不在本地启 codex，而是调 alice server cloud-runtime endpoint
+// stdout / tool calls 通过 sync engine push 回 daemon (再到 user UI)</code></pre>
+
+<h3>8.5 UI: 让 user 知道 agent 跑哪里</h3>
+
+<div class="callout note">
+<span class="callout-title">UX 关键</span>
+ISO-3 白盒原则要求 user / owner 永远知道 agent 在哪。Agent profile / issue activity stream 上要有明确标识：
+<ul>
+<li>🖥 <strong>Local</strong> (Path A) — 跑在 user 自己 machine，绿色 indicator</li>
+<li>☁ <strong>Cloud sandbox</strong> (Path B) — 跑在 e2b microVM，黄色 indicator + 提示原因 ("This service agent runs in cloud sandbox")</li>
+<li>⚠ <strong>Cloud (升级触发)</strong> — 因为触发 critical filter 临时升级，红色 indicator + owner 通知</li>
+</ul>
+</div>
+
+<!-- ============================ -->
+<h2 class="green">9. Phased Rollout</h2>
+
+<table>
+<thead>
+<tr><th>Phase</th><th>主题</th><th>周期</th><th>退出标准</th></tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>R0 (current)</strong></td>
+  <td>Alice 现状 — codex Linux 有 sandbox，其他全裸跑</td>
+  <td>—</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td><strong>R1</strong></td>
+  <td>
+    Linux 上把 Claude / Hermes 用 bubblewrap 包一层<br>
+    + 加 per-task <code>CLAUDE_HOME</code> (跟 CODEX_HOME 同思路)
+  </td>
+  <td>4 周</td>
+  <td>Linux 上三个底座都有 filesystem 真隔离</td>
+</tr>
+<tr>
+  <td><strong>R2</strong></td>
+  <td>
+    Mac 上写 sandbox-exec sbpl profile<br>
+    替代 codex fallback 的 danger-full-access<br>
+    Claude / Hermes 同样包装
+  </td>
+  <td>3 周</td>
+  <td>Mac 上三个底座有 filesystem + 基础 network 隔离</td>
+</tr>
+<tr>
+  <td><strong>R3</strong></td>
+  <td>
+    Network allowlist<br>
+    Linux: nftables per-task UID rule<br>
+    Mac: sbpl + DNS resolve hack
+  </td>
+  <td>2 周</td>
+  <td>Outbound 限制 allowlist，未声明 host 拒绝</td>
+</tr>
+<tr>
+  <td><strong>R4</strong></td>
+  <td>
+    Cloud runtime POC<br>
+    e2b SDK 集成<br>
+    单 service agent 跑通 cloud
+  </td>
+  <td>3 周</td>
+  <td>一个 service agent 在 e2b 上完整跑完一个 task</td>
+</tr>
+<tr>
+  <td><strong>R5</strong></td>
+  <td>
+    Cloud runtime 接 service agent 全量<br>
+    Hybrid 分流策略
+  </td>
+  <td>2 周</td>
+  <td>所有 service agent 默认 cloud；普通 agent 触发 critical rule 时自动升级</td>
+</tr>
+<tr>
+  <td><strong>R6</strong></td>
+  <td>
+    UI runtime indicator<br>
+    OTel span 标 runtime location
+  </td>
+  <td>1 周</td>
+  <td>Agent profile / issue 上明确显示跑哪里</td>
+</tr>
+</tbody>
+</table>
+
+<!-- ============================ -->
+<h2 class="pink">10. 已知风险 + 反例</h2>
+
+<div class="callout danger">
+<span class="callout-title">风险 1 — sandbox-exec 被 Apple 彻底废</span>
+Mac 上唯一的 native 选项。Apple 任何 macOS major release 可能拿掉。
+<strong>缓解</strong>：监控 macOS dev beta，把 sbpl profile 当 "best effort"，service agent 强制 cloud，普通 agent 接受 fallback (跟现在 codex fallback 同 risk profile)。
+</div>
+
+<div class="callout danger">
+<span class="callout-title">风险 2 — bubblewrap 在 Linux 老 kernel 不可用</span>
+某些 LTS distro kernel &lt; 4.4 没 user namespaces。
+<strong>缓解</strong>：daemon 启动时 probe，不可用就 warning + fallback no-op。Alice 文档提醒最低 kernel 版本。
+</div>
+
+<div class="callout danger">
+<span class="callout-title">风险 3 — e2b 价格突变</span>
+SaaS 单价说涨就涨 (跟 Anthropic API 同 dependency)。
+<strong>缓解</strong>：cloud runtime 抽象 interface，e2b 是其中一个实现，未来切自建 Firecracker / Modal / fly.io 都可以。Sandbox interface 别绑死 e2b API。
+</div>
+
+<div class="callout danger">
+<span class="callout-title">风险 4 — network allowlist 维护爆炸</span>
+每个 MCP / API / tool 都要进 allowlist。如果 agent 接 50 个 MCP，allowlist 维护成本爆炸。
+<strong>缓解</strong>：allowlist 不是 task-specific 是 agent-specific (在 agent 配置里声明)，agent iteration 时一起 review。所有 declared MCP 自动 add；其他 outbound 强制 prompt owner。
+</div>
+
+<div class="callout danger">
+<span class="callout-title">风险 5 — Sandbox 跟 agent 协作工具冲突</span>
+sandbox 把 ~/.aws 屏蔽，但 agent 想用 user 的 aws-cli 跑某个 task — agent 直接 fail。
+<strong>缓解</strong>：声明式机制。Agent 在 skill 里可声明 <code>requires: [aws-creds]</code>，daemon 知道这个 task 需要打开 ~/.aws read，prompt user 一次性 grant，写进 task scope。
+</div>
+
+<!-- ============================ -->
+<h2 class="gray">附录 A — Schema 草案</h2>
+
+<pre><code>-- Agent 加 cloud runtime 偏好
+ALTER TABLE agent ADD COLUMN preferred_runtime TEXT NOT NULL DEFAULT 'local'
+  CHECK (preferred_runtime IN ('local', 'cloud', 'auto'));
+-- auto = hybrid 分流策略决定
+
+-- Sandbox policy 也存 agent 配置
+ALTER TABLE agent ADD COLUMN sandbox_policy JSONB;
+-- {writable: [...], readable: [...], denied: [...], network_allowlist: [...], required_grants: [...]}
+
+-- 跨 task track runtime location，进 OTel span attribute
+-- span.attributes.runtime.location = 'local' | 'cloud-e2b' | 'cloud-firecracker' | ...
+-- 不写业务 DB
+
+-- Machine 表加 sandbox capability detection
+ALTER TABLE machine ADD COLUMN sandbox_capabilities JSONB;
+-- {bubblewrap_available: bool, landlock_kernel: bool, sandbox_exec_works: bool, ...}
+-- daemon 启动时 probe 自己机器，回报 alice server
+-- alice 用这个决定 task 能不能 routed 到这台 machine</code></pre>
+
+<h2 class="gray">附录 B — 跟主设计稿的对应</h2>
+
+<table>
+<thead>
+<tr><th>本文档</th><th>主设计稿对应</th><th>系统级 §对应</th></tr>
+</thead>
+<tbody>
+<tr><td>ISO-1 Filesystem 边界</td><td>INV-7 (intrusive filter 在 logical 层兜底)</td><td>§10 Intrusive filter</td></tr>
+<tr><td>ISO-2 Network deny-default</td><td>INV-1 P1 数字资产保护</td><td>§10 规则库</td></tr>
+<tr><td>ISO-3 白盒优先</td><td>INV-8 audit-over-ACL</td><td>§9 Observability</td></tr>
+<tr><td>Path A user-hardware-trust</td><td>主设计 A1 + A2 (internal trust)</td><td>—</td></tr>
+<tr><td>Path B cloud microVM opt-in</td><td>INV-6 service mode + elevated</td><td>§8 Service Agent</td></tr>
+<tr><td>Hybrid 分流策略</td><td>新增 — 主设计没覆盖</td><td>—</td></tr>
+</tbody>
+</table>
+
+<!-- giscus -->
+<h2 class="purple" style="margin-top:60px;">💬 Comments</h2>
+<p style="color:#666;font-size:13px;">用 GitHub 账号登录留言。讨论同步到 <a href="https://github.com/KafkaCat/alice-design-test/discussions">repo Discussions</a>。</p>
+
+<script src="https://giscus.app/client.js"
+        data-repo="KafkaCat/alice-design-test"
+        data-repo-id="R_kgDOSoTWvQ"
+        data-category="General"
+        data-category-id="DIC_kwDOSoTWvc4C94Cx"
+        data-mapping="pathname"
+        data-strict="0"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="top"
+        data-theme="light"
+        data-lang="zh-CN"
+        data-loading="lazy"
+        crossorigin="anonymous"
+        async>
+</script>
+
+<p style="margin-top:80px;text-align:center;color:#999;font-size:12px;">
+<a href="../../../">← 回索引</a> ·
+<a href="../permission-model/">主设计稿</a> ·
+<a href="../permission-model/system-level-features.html">系统级功能</a> ·
+<a href="../permission-model/drive-permission-design.html">Drive 设计</a>
+</p>
+
+</body>
+</html>
