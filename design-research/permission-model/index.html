@@ -7,356 +7,231 @@
   * { box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
-    max-width: 1040px;
+    max-width: 920px;
     margin: 0 auto;
     padding: 32px 44px 80px;
     color: #1a1a1a;
     background: #fafafa;
-    line-height: 1.62;
+    line-height: 1.6;
     font-size: 14.5px;
   }
-  h1 { font-size: 32px; margin-bottom: 4px; font-weight: 700; letter-spacing: -0.5px; }
+  h1 { font-size: 30px; margin-bottom: 4px; font-weight: 700; letter-spacing: -0.5px; }
   h2 {
-    font-size: 22px;
-    margin-top: 52px;
-    padding: 6px 14px;
-    border-radius: 4px;
-    font-weight: 600;
-    display: inline-block;
+    font-size: 19px; margin-top: 44px; padding: 5px 13px;
+    border-radius: 4px; font-weight: 600; display: inline-block;
   }
   h2.purple { background: #ede9fe; color: #5b21b6; }
-  h2.blue   { background: #dbeafe; color: #1e40af; }
-  h2.green  { background: #dcfce7; color: #166534; }
-  h2.orange { background: #fed7aa; color: #9a3412; }
   h2.red    { background: #fee2e2; color: #991b1b; }
+  h2.orange { background: #fed7aa; color: #9a3412; }
   h2.teal   { background: #ccfbf1; color: #115e75; }
   h2.gray   { background: #f3f4f6; color: #374151; }
-  h3 { font-size: 17px; margin-top: 22px; font-weight: 600; color: #2a2a2a; }
-  h4 { font-size: 14px; margin-top: 16px; margin-bottom: 6px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.6px; }
-  .meta { color: #888; font-size: 12.5px; margin-bottom: 24px; }
-  code { font-family: "SF Mono", Menlo, Consolas, monospace; background: #f0f0f0; padding: 1px 6px; border-radius: 3px; font-size: 12.5px; }
-  pre { background: #1e1e1e; color: #d4d4d4; padding: 14px 18px; border-radius: 4px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; }
+  h4 { font-size: 13px; margin: 12px 0 5px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.6px; }
+  .meta { color: #888; font-size: 12.5px; margin-bottom: 22px; }
+  code { font-family: "SF Mono", Menlo, Consolas, monospace; background: #f0f0f0; padding: 1px 6px; border-radius: 3px; font-size: 12px; }
+  pre { background: #1e1e1e; color: #d4d4d4; padding: 13px 16px; border-radius: 4px; overflow-x: auto; font-size: 12px; line-height: 1.5; }
   pre code { background: transparent; color: inherit; padding: 0; }
-  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13px; background: #fff; }
-  th, td { border: 1px solid #ddd; padding: 8px 12px; vertical-align: top; text-align: left; }
-  th { background: #f0f0f0; font-weight: 600; font-size: 12.5px; color: #333; }
-  td.yes { background: #ecfdf5; color: #15803d; font-weight: 600; text-align: center; }
-  td.no  { background: #fef2f2; color: #b91c1c; font-weight: 600; text-align: center; }
-  ul, ol { padding-left: 24px; margin: 8px 0; }
-  li { margin-bottom: 5px; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 12.5px; background: #fff; }
+  th, td { border: 1px solid #ddd; padding: 7px 11px; vertical-align: top; text-align: left; }
+  th { background: #f0f0f0; font-weight: 600; font-size: 12px; color: #333; }
+  td.yes { background: #ecfdf5; color: #15803d; font-weight: 700; text-align: center; }
+  td.no  { background: #fef2f2; color: #b91c1c; font-weight: 700; text-align: center; }
+  ul, ol { padding-left: 22px; margin: 6px 0; }
+  li { margin-bottom: 3px; }
   a { color: #1a73e8; text-decoration: none; }
   a:hover { text-decoration: underline; }
 
   .hero {
     background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-    color: #fff;
-    border-radius: 8px;
-    padding: 26px 34px;
-    margin: 18px 0 28px;
+    color: #fff; border-radius: 8px; padding: 20px 28px; margin: 16px 0 22px;
   }
-  .hero p { margin: 8px 0; font-size: 15.5px; }
+  .hero p { margin: 6px 0; font-size: 14.5px; }
   .hero strong { color: #fef9c3; }
 
-  /* 核心法条 */
+  .master { background:#fff7ed; border:1px solid #fed7aa; border-radius:6px; padding:12px 18px; margin:14px 0; font-size:13.5px; }
+  .master b { color:#9a3412; }
+
+  .pillar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 14px 0; }
+  .pillar > div { background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 12px 16px; }
+  .pillar .priority { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+  .pillar .label { font-size: 15px; font-weight: 600; margin: 3px 0; }
+  .pillar p { font-size: 12px; color: #555; margin: 5px 0 0; }
+
+  /* 法条卡片 */
   .law {
-    background: #fff;
-    border-left: 4px solid #1a73e8;
-    border-top: 1px solid #e6e6e6;
-    border-right: 1px solid #e6e6e6;
-    border-bottom: 1px solid #e6e6e6;
-    padding: 16px 22px;
-    margin: 16px 0;
-    border-radius: 0 4px 4px 0;
+    background: #fff; border: 1px solid #e6e6e6; border-left: 4px solid #1a73e8;
+    padding: 14px 20px; margin: 13px 0; border-radius: 0 4px 4px 0;
   }
   .law.critical { border-left-color: #b91c1c; }
   .law.core { border-left-color: #7c3aed; background: #fcfaff; }
-  .law h3 { margin-top: 0; display: flex; align-items: baseline; gap: 10px; }
+  .law .head { display: flex; align-items: baseline; gap: 9px; margin-bottom: 3px; }
   .law-tag {
-    display: inline-block;
-    padding: 2px 9px;
-    border-radius: 3px;
-    font-size: 11.5px;
-    font-weight: 700;
-    color: #fff;
-    background: #1a73e8;
-    letter-spacing: 0.5px;
-    flex-shrink: 0;
+    display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px;
+    font-weight: 700; color: #fff; background: #1a73e8; letter-spacing: 0.5px; flex-shrink: 0;
   }
   .law-tag.critical { background: #b91c1c; }
   .law-tag.core { background: #7c3aed; }
-  .law .statement { font-size: 14.5px; margin: 6px 0 4px; }
-  .law .statement strong { color: #111; }
-  .why { color: #555; font-size: 13.5px; margin: 8px 0 2px; }
-  .why::before { content: "为什么 — "; font-weight: 600; color: #7c3aed; }
-  .analogy { color: #555; font-size: 13px; margin: 6px 0 2px; padding-left: 14px; border-left: 2px solid #ddd; }
-  .analogy strong { color: #333; }
+  .law .title { font-weight: 700; font-size: 15px; color: #111; }
+  .law .say { font-size: 13.5px; color: #333; margin: 3px 0; }
+  .verdict {
+    background: #eff6ff; border: 1px solid #cfe3ff; border-radius: 4px;
+    padding: 8px 13px; margin: 7px 0 2px; font-size: 13px; color: #1f2937;
+  }
+  .verdict::before { content: "⚖ 裁决  "; font-weight: 700; color: #1e40af; }
+  .tiny { font-size: 12px; color: #777; margin: 4px 0 0; }
 
-  .callout { padding: 13px 18px; margin: 12px 0; border-radius: 4px; font-size: 13.5px; }
-  .callout .ct { font-weight: 700; display: block; margin-bottom: 4px; }
-  .callout.danger  { background: #fef2f2; border: 1px solid #fecaca; }
-  .callout.danger .ct  { color: #b91c1c; }
-  .callout.success { background: #ecfdf5; border: 1px solid #bbf7d0; }
-  .callout.success .ct { color: #15803d; }
-  .callout.note    { background: #fffbe6; border: 1px solid #fde68a; }
-  .callout.note .ct    { color: #b45309; }
-
-  .pillar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 16px 0; }
-  .pillar > div { background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 14px 18px; }
-  .pillar .priority { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
-  .pillar .label { font-size: 16px; font-weight: 600; margin: 4px 0; }
-  .pillar p { font-size: 12.5px; color: #555; margin: 6px 0 0; }
-
-  .toc { background: #fff; padding: 14px 24px; border: 1px solid #ddd; border-radius: 4px; margin: 22px 0 28px; font-size: 13.5px; }
+  .toc { background: #fff; padding: 12px 22px; border: 1px solid #ddd; border-radius: 4px; margin: 18px 0 24px; font-size: 13px; }
   .toc b { color: #5b21b6; }
-  .toc ul { columns: 2; column-gap: 36px; list-style: none; padding-left: 0; }
-  .toc li { margin-bottom: 4px; }
-
-  .premise { background: #f8f8fb; border: 1px solid #e4e4ee; border-radius: 4px; padding: 8px 22px; margin: 14px 0; font-size: 13px; }
-  .premise li { margin-bottom: 4px; }
+  .toc ul { columns: 2; column-gap: 30px; list-style: none; padding-left: 0; margin: 4px 0; }
+  .toc li { margin-bottom: 3px; }
 </style>
 </head>
 <body>
 
 <h1>Alice 权限模型 · 核心不变量</h1>
-<div class="meta">内部协作 + AI agent 第一公民 · 这是设计原点（bible）。每条法条相互咬合，改一条会破坏其他几条的一致性。本文只写<strong>理想态</strong>——落地进度与现状差距见「系统级功能」清单。</div>
+<div class="meta">内部协作 + AI agent 第一公民 · 设计圣经（bible）。每条 = 一条可裁决的准则；比较两个设计方案时，逐条对照取最终判决。只写理想态——落地差距见<a href="./system-level-features.html">系统级清单</a>。</div>
 
 <div class="hero">
-<p><strong>Agent 是公司的「同事」，不是某个 user 的提线木偶。</strong>它有自己的身份、能被 assign、自驱推进工作、遇到 block 主动找人。</p>
-<p>每个 agent（和每台 machine）由<strong>一个 owner</strong> 背书 + <strong>若干 collaborator</strong> 协作。Owner 是责任主体，collaborator 只协作。</p>
-<p><strong>权限不预先列举，行为被持续观察。</strong>信任建在 transparency + audit 上，不建在 fine-grained ACL 上。</p>
+<p><strong>Agent 是公司的「同事」，不是某个 user 的提线木偶</strong>——有身份、能被 assign、自驱推进、遇 block 找人。</p>
+<p>每个 agent / machine = <strong>一个 owner（责任主体）+ N 个 collaborator（只协作）</strong>。信任建在 transparency + audit 上，不建在 fine-grained ACL 上。</p>
 </div>
 
 <div class="toc">
 <ul>
-<li><b>§0</b> 三个保护目标</li>
-<li><b>§1</b> 地基公理（INV-1/2）</li>
-<li><b>§2</b> 协作核心（INV-3~6）</li>
-<li><b>§3</b> 权限机制（INV-7~10）</li>
-<li><b>§4</b> 状态模型（INV-11）</li>
-<li><b>§5</b> 关系图速查 + 引用</li>
+<li><b>§0</b> 三个保护目标（最高裁决）</li>
+<li><b>§1</b> 地基（INV 1–2）</li>
+<li><b>§2</b> 协作核心（INV 3–6）</li>
+<li><b>§3</b> 权限机制（INV 7–10）</li>
+<li><b>§4</b> 状态（INV 11）</li>
+<li><b>§5</b> 关系图速查</li>
 </ul>
 </div>
 
 <!-- ============================ -->
-<h2 id="goals" class="purple">§0 · 三个保护目标（按优先级裁决）</h2>
-
-<p>当两个目标冲突，按编号裁决。这是所有取舍的最高准绳。</p>
+<h2 id="goals" class="purple">§0 · 三个保护目标 = 最高裁决准则</h2>
 
 <div class="pillar">
-<div>
-<div class="priority">Priority 1</div>
-<div class="label">公司数字资产</div>
-<p>代码仓库、生产数据库、CI/CD、payment、deploy pipeline、cloud account。Agent 的破坏性 action（DROP / push --force / 删 prod）是首要拦截点。<strong>失守不可逆。</strong></p>
-</div>
-<div>
-<div class="priority">Priority 2</div>
-<div class="label">公司隐私数据</div>
-<p>客户合同、未发布产品、财务、HR 文档、商业秘密。读写需可见、可审计、可追溯。<strong>失守可恢复但代价大。</strong></p>
-</div>
-<div>
-<div class="priority">Priority 3</div>
-<div class="label">员工个人隐私</div>
-<p>员工个人 chat、个人 token、私人笔记。同事 agent 默认不应触碰。<strong>失守恢复成本最低，但信任伤害大。</strong></p>
-</div>
+<div><div class="priority">Priority 1</div><div class="label">公司数字资产</div><p>代码 / 生产 DB / CI·CD / cloud account。破坏性 action 是首要拦截点。<b>失守不可逆。</b></p></div>
+<div><div class="priority">Priority 2</div><div class="label">公司隐私数据</div><p>客户合同 / 未发布产品 / 财务 / HR。读写须可见可审计。<b>失守可恢复但代价大。</b></p></div>
+<div><div class="priority">Priority 3</div><div class="label">员工个人隐私</div><p>个人 chat / token / 私人笔记。同事 agent 默认不碰。<b>信任伤害大。</b></p></div>
 </div>
 
-<div class="callout note">
-<span class="ct">设计前提（这些假设撑起下面所有法条）</span>
-<ul class="premise">
-<li><b>内部信任</b>：user 和 agent 都来自同一家公司，员工是 trusted insider，agent 的 owner 是 trusted accountable human。不是面向匿名租户的 SaaS。</li>
-<li><b>规模可枚举</b>：&lt;200 人，agent / 敏感数据集合都可枚举。fine-grained ACL 的工程成本 ≫「全量 audit + 异常 review」。</li>
-<li><b>Agent 行为是 emergent 的</b>：task 启动时无法预先列出它会调用的工具/文件/API。所以 capability scope 这条路对 generative agent 不通。</li>
-<li><b>Agent 数量将爆炸</b>：今年 5 个，明年 50，后年 500。必须有可治理的结构（owner / collaborator / audit），不能假设 admin 手动管每个 agent。</li>
-<li><b>不商业出售，可能开源</b>：不为外部合规妥协；但 audit 后端 / owner 规则 / filter 规则要让外部 fork 能低成本替换。</li>
-</ul>
+<div class="master">
+<b>⚖ 总裁决</b>：任意两个目标 / 两条法条 / 两个方案冲突时，<b>编号小的赢</b>。例：agent 为便利想读 prod DB —— P3（便利）撞 P1（资产）→ 默认 halt。
 </div>
+
+<p class="tiny">前提（撑起全部法条）：内部信任，非匿名 SaaS · 规模 &lt;200 人，集合可枚举 · agent 行为 emergent，capability 列不全 · agent 数量将爆炸，必须可治理 · 可能开源，audit/规则后端要可替换。</p>
 
 <!-- ============================ -->
-<h2 id="foundation" class="red">§1 · 地基公理</h2>
+<h2 id="foundation" class="red">§1 · 地基</h2>
 
 <div class="law critical">
-<h3><span class="law-tag critical">INV-1</span>内部协作工具 — trust by default, verify continuously</h3>
-<p class="statement"><strong>陈述</strong>：所有权限/隔离取舍按 <em>(P1) 数字资产 &gt; (P2) 隐私数据 &gt; (P3) 个人隐私</em> 裁决。设计准则是「默认信任 + 持续验证」，<u>不是</u>「默认拒绝 + 显式放行」。租户隔离不是核心约束。</p>
-<p class="why">Alice 属于 <em>internal-trust enterprise</em> 这个独立产品类别——Notion / Linear / Cursor / Devin / Glean 全是 SaaS，跨租户隔离是它们的合规底线，权限模型必须重。Alice 的对照是 Stripe 内部 admin、Google BeyondCorp，这类靠 audit 兜底而非 ACL 锁死。</p>
-<p class="analogy"><strong>Stripe 内部</strong>：工程师默认能 query 客户数据，但每次 access 写 audit log、定期 sample review、异常模式触发调查。RBAC 是粗粒度的，细粒度防护靠 audit。</p>
+<div class="head"><span class="law-tag critical">INV-1</span><span class="title">内部信任：trust by default, verify continuously</span></div>
+<p class="say">取舍按 P1 &gt; P2 &gt; P3；准则是「默认信任 + 持续验证」，<u>不是</u>「默认拒绝 + 显式放行」。租户隔离不是核心约束。</p>
+<div class="verdict">方案偏「事前锁死 / deny-by-default 重 ACL」vs 偏「放行 + 全量 audit + 异常 review」→ 选后者。（对照系是 Stripe 内部 / BeyondCorp，不是 Notion / Linear 这类 SaaS。）</div>
 </div>
 
 <div class="law critical">
-<h3><span class="law-tag critical">INV-2</span>Workspace 是强边界（hard wall）</h3>
-<p class="statement"><strong>陈述</strong>：跨 workspace 默认<strong>完全不可达</strong>——user / agent / machine / drive / issue / memory 一律如此。所有高敏感数据（HR / 财务 / 客户隐私 / 未发布产品）<strong>通过分配到独立 workspace 隔离</strong>，而不是靠 workspace 内的细粒度 file-level ACL。</p>
-<p class="why">这是当前阶段最简单、最稳的隐私保护方式。给敏感数据开 <code>hr-workspace</code> / <code>finance-workspace</code>，只对相关员工 grant member——这个 workspace 里的 agent 自动继承隔离，无法 leak 到别处。比维护一套 file-level ACL 矩阵便宜得多，也不易出错。</p>
-<div class="callout success" style="margin-top:10px;">
-<span class="ct">两层边界，分工明确</span>
-<b>边界 1（强）</b>：workspace 是 hard wall，跨墙不可达。&nbsp;&nbsp;<b>边界 2（轻）</b>：workspace <u>内部</u>走轻量 ReBAC + 强 transparency——team 表达「谁看哪些 issue/project」，但 team 是<u>组织视图</u>，不是加密边界（见 INV-5）。
-</div>
+<div class="head"><span class="law-tag critical">INV-2</span><span class="title">Workspace 是强边界（hard wall）</span></div>
+<p class="say">跨 workspace 默认<strong>完全不可达</strong>——user / agent / machine / drive / issue / memory 一律如此。</p>
+<div class="verdict">任何「让跨 workspace 可达」的方案<strong>直接否决</strong>。要隔离敏感数据（HR / 财务）→ 选「拆独立 workspace」，<strong>不</strong>选「workspace 内加 file-level ACL」。</div>
 </div>
 
 <!-- ============================ -->
 <h2 id="collab" class="purple">§2 · 协作核心</h2>
-<p>这一节是模型的心脏——agent 怎么被治理、谁对它负责、多人怎么协作。</p>
 
 <div class="law critical">
-<h3><span class="law-tag critical">INV-3</span>Agent 是第一公民，CAN be assignee</h3>
-<p class="statement"><strong>陈述</strong>：issue 可以直接 assign 给 agent（<code>assignee_type ∈ (member, agent)</code>）。Agent 自驱推进，遇到 block 主动找人。跟 Linear 的 <code>delegate ≠ assignee</code> 取相反立场。</p>
-<p class="why">Linear 是 SaaS，agent 是 customer 装的 third-party app，它无法控制 agent 的 accountability 链条，只能保留「human assignee = 追责对象」。Alice 控制整个链条——agent 必有 owner（INV-4），owner 是员工，员工的 accountability 已在 HR/法律上闭环。所以 <code>issue.assignee = agent</code> 在 Alice 合理，在 Linear 不合理。这不是「Alice 更激进」，是「Linear 没有 owner 这个工具」。</p>
+<div class="head"><span class="law-tag critical">INV-3</span><span class="title">Agent 是第一公民</span></div>
+<p class="say">Agent 跟 user 同等地位——能被 assign（<code>issue.assignee = agent</code>）、能 own、能 collaborate。</p>
+<div class="verdict">设计「agent 能不能做 X」时，<strong>默认给它 user 同等权</strong>，除非更高法条挡住。（Linear 做不到是因为它没有 owner 这工具；Alice 有，所以可以。）</div>
 </div>
 
 <div class="law core">
-<h3><span class="law-tag core">INV-4</span>一个 Owner + N 个 Collaborator（agent 和 machine 都适用）</h3>
-<p class="statement"><strong>陈述</strong>：每个 <strong>agent</strong> 和每台 <strong>machine</strong> 都有且只有<strong>一个 owner</strong>，外加<strong>任意多个 collaborator</strong>。Owner 权限更高——能改基线、删除、转移、管理 collaborator；collaborator <strong>只有协作权限</strong>——能用、能观察、能协同推进，但不能改变这个 agent/machine 的「身份基线」。</p>
-
-<h4>Agent — owner vs collaborator</h4>
+<div class="head"><span class="law-tag core">INV-4</span><span class="title">一个 Owner + N 个 Collaborator（agent 和 machine 都适用）</span></div>
+<p class="say">每个 agent / machine 有且仅<strong>一个 owner</strong>（全权）+ 任意<strong>collaborator</strong>（只协作）。这是所有资源权限的唯一形状。</p>
 <table>
 <tr><th>操作</th><th>Owner</th><th>Collaborator</th></tr>
-<tr><td>assign task / 调用 / 观察 action stream</td><td class="yes">✅</td><td class="yes">✅</td></tr>
-<tr><td>改 system prompt / skill / MCP / 切换 model</td><td class="yes">✅</td><td class="no">✘</td></tr>
-<tr><td>改 permission_mode（user_equivalent ↔ service）</td><td class="yes">✅</td><td class="no">✘</td></tr>
-<tr><td>删除 / archive agent</td><td class="yes">✅</td><td class="no">✘</td></tr>
-<tr><td>转移 owner / 增删 collaborator</td><td class="yes">✅</td><td class="no">✘</td></tr>
+<tr><td><b>Agent</b>：assign task / 调用 / 观察 action stream</td><td class="yes">✅</td><td class="yes">✅</td></tr>
+<tr><td><b>Agent</b>：改 prompt / skill / MCP / model / permission_mode</td><td class="yes">✅</td><td class="no">✘</td></tr>
+<tr><td><b>Agent</b>：删除 / 转移 owner / 增删 collaborator</td><td class="yes">✅</td><td class="no">✘</td></tr>
+<tr><td><b>Machine</b>：跑自己的 agent / 看状态</td><td class="yes">✅</td><td class="yes">✅</td></tr>
+<tr><td><b>Machine</b>：改配置 / 改 visibility / 下线 / 管 collaborator</td><td class="yes">✅</td><td class="no">✘</td></tr>
 </table>
-
-<h4>Machine — owner vs collaborator</h4>
-<table>
-<tr><th>操作</th><th>Owner</th><th>Collaborator</th></tr>
-<tr><td>在上面跑自己的 agent / 查看 machine 状态与 runtime</td><td class="yes">✅</td><td class="yes">✅</td></tr>
-<tr><td>改 machine 配置 / 改 visibility（private ↔ public）</td><td class="yes">✅</td><td class="no">✘</td></tr>
-<tr><td>下线 / 删除 / 强制更新 machine</td><td class="yes">✅</td><td class="no">✘</td></tr>
-<tr><td>转移 owner / 增删 collaborator</td><td class="yes">✅</td><td class="no">✘</td></tr>
-</table>
-
-<p class="why">「一个责任人 + 多个协作者」让 agent/machine 既能被多人迭代使用，又始终有<u>唯一</u>追责对象。Collaborator 降低了协作摩擦（不必每个人都当 owner），owner 的排他权保证了基线不会被随意改动——改基线这种 intrusive 操作还要再走 INV-9 的 approval。</p>
-<div class="callout note" style="margin-top:10px;">
-<span class="ct">关键解耦：Owner ≠ Creator ≠ Caller ≠ Machine 拥有者</span>
-Owner 是<em>当前的责任主体</em>，跟「谁创建了它」（creator 是历史事实，不变）、「它跑在谁的 machine 上」、「现在谁在调用它」都<strong>没有强绑定</strong>。Owner 可 transfer（creator 不变）；owner 在 A 部门，agent 可以跑在 B 的 machine 上，被 C 调用。
-</div>
-<p class="analogy" style="margin-top:10px;"><strong>三个成熟范式都早已把 accountability 从 authorship 解耦</strong>：① Apache PMC chair 不一定是 commit 最多的人或 founder，但对项目命运负责，且可传承；② Linux 子系统 maintainer 对走进 mainline 的 patch 负责，patch 作者可能是匿名 contributor——这是 trust delegation 而非 permission delegation；③ GitHub CODEOWNERS 把「对这部分代码负责的人」做成跟 commit history 解耦的 first-class 概念。Alice 是第一个把这套 human-to-human 的解耦应用到 <strong>human-to-agent</strong> 的产品形态。</p>
+<div class="verdict">任何资源权限设计必须落到这个形状。<strong>否决「无主资源」</strong>（没有唯一责任人）和<strong>「人人可改基线」</strong>（collaborator 能改 owner-level 配置）。</div>
+<p class="tiny"><b>Owner ≠ creator ≠ caller ≠ 机器拥有者</b>：owner 是<u>当前责任人</u>，可 transfer（creator 不变），可在 A 部门却让 agent 跑 B 的机器、被 C 调用。业界先例：Apache PMC chair / Linux maintainer / GitHub CODEOWNERS——accountability 早已跟 authorship 解耦，Alice 把它用到 human-to-agent。</p>
 </div>
 
 <div class="law">
-<h3><span class="law-tag">INV-5</span>Team 是组织视图，不是加密边界</h3>
-<p class="statement"><strong>陈述</strong>：Team 在 workspace <u>内部</u>表达「哪些 member 看哪些 issue / project」。Team 有 <code>public / private</code> 两种 visibility，issue 强制归属于<strong>恰好一个 team</strong>，project 也归属单一 team。但 team 不是 INV-2 那种 hard wall——它是组织视图，强保护仍靠 workspace 隔离。</p>
-<h4>可见性规则</h4>
-<ul>
-<li><strong>public team</strong>：任何 workspace member 可见其 issue / project。</li>
-<li><strong>private team</strong>：仅 team member 可见。</li>
-<li>无 team 的 issue：workspace member 即可见。</li>
-</ul>
-<p class="why" style="margin-top:8px;"><strong>Agent 跟 user 一样守 team 边界</strong>，不是例外：</p>
-<ul>
-<li>Agent 属于某 workspace → 不能访问其他 workspace 任何资源（hard wall）。</li>
-<li>Agent 在 user U 上下文调用 → 看到的 ⊆ U 看到的（user-equivalent，见 INV-8）。</li>
-<li>U 不在 private team T → U 调用的 agent 也访问不了 T 的 issue / drive。</li>
-<li>Agent 被直接 assign 到 private team 的 issue → agent 需显式获得该 team 的 access（<code>agent_team_access</code>），与 user 进 team 同理。</li>
-</ul>
+<div class="head"><span class="law-tag">INV-5</span><span class="title">Team 是组织视图，不是加密边界</span></div>
+<p class="say">Team 决定 workspace <u>内部</u>「谁看哪些 issue / project」（public 全员可见 / private 仅成员）；issue 绑恰好一个 team。</p>
+<div class="verdict">需要「强隔离 / 加密」→ 用 <strong>workspace</strong>（INV-2），<strong>不</strong>用 team。Agent 跟 user 一样守 team 边界，<strong>不是例外</strong>（assign 到 private team 需显式 access）。</div>
 </div>
 
 <div class="law">
-<h3><span class="law-tag">INV-6</span>两条正交的权限轴，不要混为一谈</h3>
-<p class="statement"><strong>陈述</strong>：Alice 的权限由两条<strong>互相独立</strong>的轴决定。判断「谁能做什么」时必须分开看这两条。</p>
-<table>
-<tr><th>轴</th><th>取值</th><th>语义</th><th>载体</th></tr>
-<tr><td><strong>系统角色</strong>（subject 在组织里的层级）</td><td>member / admin / superadmin</td><td>workspace 级的管理能力；superadmin 是平台级</td><td><code>member.role</code> · <code>user.is_superadmin</code></td></tr>
-<tr><td><strong>资源关系</strong>（subject 对某个具体资源）</td><td>owner / collaborator</td><td>对某个 agent / machine / team 的责任与协作关系</td><td><code>owner_id</code> · collaborator 关系表 · <code>team_member.role</code></td></tr>
-</table>
-<p class="why">两轴正交意味着：一个普通 member 可以是某 agent 的 owner（对它有全权），但对别人的 agent 只是旁观者；一个 admin 有 workspace 管理权，但不会自动变成每个 agent 的 owner。把「管理层级」和「对单个资源的责任」分开，避免了「admin = 所有东西的 owner」这种权力膨胀。</p>
+<div class="head"><span class="law-tag">INV-6</span><span class="title">两条正交权限轴</span></div>
+<p class="say"><strong>系统角色</strong>（member / admin / superadmin）⊥ <strong>资源关系</strong>（owner / collaborator）——独立判断，互不蕴含。</p>
+<div class="verdict"><strong>否决任何把两轴耦合的方案</strong>。典型反例：「admin 自动成为所有 agent 的 owner」——admin 有管理权 ≠ 对每个资源有责任关系。</div>
 </div>
 
 <!-- ============================ -->
 <h2 id="mechanism" class="orange">§3 · 权限机制（mechanism over policy）</h2>
-<p>先把「如何记录/拦截每一次行为」做对（mechanism），再谈「什么行为允许」（policy）。这是 PostgreSQL / Linux / Git 共有的哲学。</p>
 
 <div class="law critical">
-<h3><span class="law-tag critical">INV-7</span>Permission ≠ ACL —— 权限是 intrusive-action 过滤</h3>
-<p class="statement"><strong>陈述</strong>：不做 fine-grained capability scope / ACL 矩阵。权限模型是<strong>两层 intrusive filter</strong>：① deterministic rule 拦显著模式（DROP TABLE / push --force / 大批量 export）；② LLM-as-judge 拦语义 intrusive（「这个 query 是不是在绕开 HR tag 看工资表」）。命中 → prompt owner/user 决定。</p>
-<p class="why">Capability scope 假设 action space 可枚举；generative agent 的 action space 是 emergent 的。强行 fine-grained 化 = 永远在维护「agent X 能不能调 tool Y」的矩阵 → 维护成本爆炸 → 最后所有 agent 都 grant <code>*</code> → 模型形同虚设。</p>
-<p class="analogy"><strong>四个成熟范式都是「拦异常」而非「列白名单」</strong>：垃圾邮件过滤（rule + ML，没人列「哪些邮件可收」）· macOS TCC（首次调摄像头才弹窗）· Cursor/Claude Code Plan Mode（每步 bash/write 让你确认）· <code>sudo</code> + audit（不预列能跑什么，而是 require password + 全量记录 + 异常 review）。</p>
+<div class="head"><span class="law-tag critical">INV-7</span><span class="title">Permission ≠ ACL</span></div>
+<p class="say">不做 fine-grained capability / ACL 矩阵；权限 = 两层 intrusive filter（rule 拦显著模式 + LLM-judge 拦语义 intrusive），命中即 prompt owner/user。</p>
+<div class="verdict">方案 PK：「加 capability scope / ACL 矩阵」vs「加 filter + audit」→ <strong>永远选后者</strong>。理由：generative agent 的 action space 不可枚举，矩阵必腐烂成全员 grant <code>*</code>。（垃圾邮件 / macOS TCC / sudo 都是「拦异常」而非「列白名单」。）</div>
 </div>
 
 <div class="law">
-<h3><span class="law-tag">INV-8</span>默认 user-equivalent；service mode = admin 门控的例外</h3>
-<p class="statement"><strong>陈述</strong>：Agent 默认 <code>permission_mode = user_equivalent</code>——task 启动时取 caller 的 ACL 快照，agent 看到的 ⊆ caller 看到的，不可能越权。少数 <code>service</code> mode（agent 能看到 caller 看不到的）必须由 <code>admin</code> 角色创建 + co-sign，并带强 audit + UI 标记 + 季度 review。</p>
-<p class="why">Service mode 是 confused-deputy 的<u>合法</u>形态（如 HR bot 需要超越单个 user 的视野），但 Alice 用<strong>角色门控</strong>而非「任何人都能开」，并让创建路径故意笨拙，防止所有 agent 都升 service mode 绕开限制。</p>
-<p class="analogy"><strong>Glean</strong> 用 query-time impersonation（agent 只能看到提问者能看到的）实现 user-equivalent；<strong>Notion Custom Agent</strong> 则把 elevated access 当 feature 公开承认——后者正是我们用角色门控要避免的滑坡。</p>
+<div class="head"><span class="law-tag">INV-8</span><span class="title">默认 user-equivalent；service = admin 门控的例外</span></div>
+<p class="say">Agent 看到的 ⊆ caller 看到的（取 caller ACL 快照）。要越权（<code>service</code> mode）必须 admin 创建 + co-sign + 强 audit + 季度 review。</p>
+<div class="verdict">默认拒绝 elevated。service mode 创建路径要<strong>故意笨拙</strong>，防止所有 agent 都升 service 绕开限制。</div>
 </div>
 
 <div class="law">
-<h3><span class="law-tag">INV-9</span>Intrusive iteration 需 owner approve</h3>
-<p class="statement"><strong>陈述</strong>：改变 agent <u>行为基线</u>的修改（system prompt / 增删 skill / 增删 MCP / 切换 model / 改 permission_mode / 转移 owner）必须 owner approve。非基线修改（名字、头像、tag、UI 颜色、使用统计）和<strong>日常 memory 写入（模型自决定）</strong>不需要 owner 介入。</p>
-<p class="why">把 agent 当成可迭代的「软件 artifact」，用 GitHub PR + CODEOWNERS + branch protection 的同形态 workflow 治理。Owner 只管真正改变行为的变更，避免 approval 沦为 rubber-stamp。</p>
+<div class="head"><span class="law-tag">INV-9</span><span class="title">改基线需 owner approve</span></div>
+<p class="say">改 agent <u>行为基线</u>（prompt / skill / MCP / model / permission_mode / 转 owner）走 owner approval；非基线（名字 / tag / UI）和日常 memory 写入（模型自决定）不打扰 owner。</p>
+<div class="verdict">判断「这变更要不要 approval」就问一句：<strong>它改变 agent 的行为吗？</strong> 改 → approve；不改 → 放行。（同 GitHub PR + CODEOWNERS 形态。）</div>
 </div>
 
 <div class="law critical">
-<h3><span class="law-tag critical">INV-10</span>Audit-over-ACL —— 全量审计，专用工具，与应用观测分离</h3>
-<p class="statement"><strong>陈述</strong>：所有 agent action 全量 audit，用<strong>专用开源 audit 工具</strong>（Graylog Open / OpenSearch Dashboards 等，带 UI、append-only、长期保留），跟应用观测（APM / error tracking / metrics）<strong>完全分离</strong>。当前阶段先把 transparency 做到 100%，再倒推哪些 pattern 需要前置拦截。</p>
-<p class="why">Audit 是合规级需求——跟业务 DB 或 Datadog/Sentry 混在一起，audit query 会被业务 noise 淹没，且 ACL 模型不匹配。"After-the-fact reconciliation" 比 "before-the-fact denial" 工程上经济得多。审计后端可替换，对开源 fork 友好。</p>
+<div class="head"><span class="law-tag critical">INV-10</span><span class="title">Audit-over-ACL</span></div>
+<p class="say">全量 audit，用<strong>专用开源 audit 工具</strong>（Graylog / OpenSearch，append-only、长期保留、带 UI），跟应用观测（APM / metrics）<strong>完全分离</strong>。</p>
+<div class="verdict">方案 PK：「before-the-fact denial」vs「after-the-fact audit」→ 选 audit（更经济）。先把 transparency 做到 100%，再倒推哪些 pattern 要前置拦截。审计后端别绑死，留给 fork 替换。</div>
 </div>
 
 <!-- ============================ -->
-<h2 id="state" class="teal">§4 · 状态模型</h2>
+<h2 id="state" class="teal">§4 · 状态</h2>
 
 <div class="law">
-<h3><span class="law-tag">INV-11</span>Stateful identity + ephemeral runtime + memory 只做 pointer 层</h3>
-<p class="statement"><strong>陈述</strong>：Agent 有 stateful identity（DB row + 挂载的 memory）。每个 task 的 runtime instance 由 <code>agent identity ⊕ caller context</code> 合成，task 结束销毁。Memory <strong>能力下放底座</strong>（claude / codex / hermes 各自写 jsonl、维护 history），Alice <strong>只做最上层 pointer + metadata 索引</strong>，不集中存内容。</p>
-<h4>三层 state，分清归属</h4>
-<ul>
-<li><strong>Knowledge</strong>（不属于 agent）：产品文档、code、issue 历史——在 source-of-truth 系统里，现读现用。当前规模「反 RAG」，不预先 embed。</li>
-<li><strong>Skills</strong>（属于 agent）：操作流程、工具调用模板，cross-agent 可复用。</li>
-<li><strong>Execution memory</strong>（属于 agent，但存在底座）：past task 摘要、owner 标注的 preference。Alice 只存「在哪台 machine / 哪个底座 / 多大 / 何时改」这类 metadata。</li>
-</ul>
-<p class="why" style="margin-top:8px;">底座是可扩展的（已支持 11 种），它们自带 memory 系统——Alice 重写一套只会跟底座 schema 持续打架。Pointer 层让不同 agent 跨实例互访彼此 memory、让 task 结束后有统一地方查询，而实际内容仍由底座原生 API 读写。跨底座 schema 不同时，由调用方用 LLM 概括成 plain text 注入，Alice 不做 schema 转换。</p>
-<p class="analogy"><strong>Erlang/OTP</strong>：actor 有 PID + state（identity），message handling 是 ephemeral computation。<strong>Kubernetes</strong>：<code>StatefulSet</code> 表达 stateful identity，<code>Pod</code> 是 ephemeral execution。Alice 的 agent identity / task runtime 是同一分层。</p>
+<div class="head"><span class="law-tag">INV-11</span><span class="title">状态三层，各归其位</span></div>
+<p class="say"><strong>Identity</strong> stateful（DB row + 挂载 memory）· <strong>Runtime</strong> ephemeral（task 后销毁）· <strong>Memory</strong> 能力在底座（11 种各自写），Alice 只做最上层 <strong>pointer + metadata</strong> 索引，不集中存内容。</p>
+<div class="verdict">设计任何「agent 记住 / 学到」的东西：内容放底座，Alice 只存「在哪台 machine / 哪个底座 / 多大 / 何时改」。<strong>否决「Alice 重写一套 memory」</strong>（必跟底座 schema 打架）。Knowledge（文档/code）不属于 agent，现读现用。</div>
 </div>
 
 <!-- ============================ -->
-<h2 id="ref" class="gray">§5 · 关系图速查 + 引用</h2>
+<h2 id="ref" class="gray">§5 · 关系图速查</h2>
 
-<h3>5.1 关系 tuple（轻量 ReBAC，关系直接建在业务表）</h3>
-<p>权限 check 退化为这张图上的可达性查询——不引入专门的关系存储引擎（SpiceDB / OpenFGA），因为关系图复杂度低，业务表足够。</p>
 <table>
 <tr><th>关系 tuple</th><th>语义</th></tr>
-<tr><td><code>workspace:W#member@user:U</code></td><td>U 是 W 的成员（hard wall 的准入）</td></tr>
-<tr><td><code>team:T#member@user:U</code></td><td>U 是 team T 成员（workspace 内细分可见性）</td></tr>
-<tr><td><code>team:T#member@agent:A</code></td><td>A 获得 team T 的 access（assign 到 private team 时需要）</td></tr>
-<tr><td><code>issue:I#in_team@team:T</code></td><td>issue I 属于 team T（恰好一个）</td></tr>
+<tr><td><code>workspace:W#member@user:U</code></td><td>U 是 W 成员（hard wall 准入）</td></tr>
+<tr><td><code>team:T#member@user:U</code> / <code>@agent:A</code></td><td>U / A 进 team T（workspace 内细分可见性）</td></tr>
+<tr><td><code>issue:I#in_team@team:T</code></td><td>issue 属于恰好一个 team</td></tr>
 <tr><td><code>issue:I#assignee@agent:A</code></td><td>A 在做 I（第一公民 assignee）</td></tr>
-<tr><td><code>agent:A#owner@user:U</code></td><td>U 对 A 负责（唯一）</td></tr>
-<tr><td><code>agent:A#collaborator@user:U</code></td><td>U 协作使用 A（多个）</td></tr>
-<tr><td><code>machine:M#owner@user:U</code></td><td>U 拥有 machine M（唯一）</td></tr>
-<tr><td><code>machine:M#collaborator@user:U</code></td><td>U 可在 M 上跑 agent（多个）</td></tr>
+<tr><td><code>agent:A#owner@user:U</code> / <code>machine:M#owner@user:U</code></td><td>唯一责任人</td></tr>
+<tr><td><code>agent:A#collaborator@user:U</code> / <code>machine:M#collaborator@user:U</code></td><td>协作者（多个）</td></tr>
 </table>
 
-<h3>5.2 一条典型可见性判断</h3>
-<pre><code>CanViewIssue(subject, issue):          // subject 是 user 或 agent
-    1. same_workspace(subject, issue)  ?  继续 : 拒绝     // INV-2 hard wall
-    2. issue.team_id is null           ?  允许（workspace member 可见）
-    3. team.visibility == 'public'     ?  允许
-    4. is_team_member(subject, team)                      // INV-5
-</code></pre>
+<p class="say" style="margin-top:10px;">权限 check = 这张图上的可达性查询（轻量 ReBAC，关系直接建在业务表，不引入 SpiceDB / OpenFGA）。一条典型判断：</p>
+<pre><code>CanView(subject, issue):                 // subject = user 或 agent
+    same_workspace(subject, issue)  ?  继续 : 拒绝     // INV-2 hard wall
+    issue.team_id is null           ?  允许（workspace member）
+    team.visibility == 'public'     ?  允许
+    is_team_member(subject, team)                      // INV-5</code></pre>
 
-<h3>5.3 引用来源</h3>
-<h4>Accountability / 治理模型</h4>
-<ul>
-<li><a href="https://www.apache.org/foundation/governance/">Apache 基金会治理（PMC chair）</a> · <a href="https://www.kernel.org/doc/html/latest/process/maintainer-pgp-guide.html">Linux kernel maintainer</a> · <a href="https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners">GitHub CODEOWNERS</a></li>
-</ul>
-<h4>Audit-over-ACL / internal trust</h4>
-<ul>
-<li><a href="https://www.beyondcorp.com/">Google BeyondCorp</a> · <a href="https://stripe.com/blog/online-migrations">Stripe internal data access</a> · <a href="https://graylog.org/products/source-available/">Graylog Open</a> · <a href="https://opensearch.org/">OpenSearch</a></li>
-</ul>
-<h4>权限 = 异常检测</h4>
-<ul>
-<li><a href="https://cursor.com/docs/agent/plan-mode">Cursor Plan Mode</a> · <a href="https://developer.apple.com/documentation/security/protecting_user_privacy">macOS TCC</a> · <a href="https://docs.anthropic.com/en/docs/agents-and-tools/computer-use">Claude Code per-tool 确认</a></li>
-</ul>
-<h4>ReBAC / 授权理论 · 状态模型</h4>
-<ul>
-<li><a href="https://research.google/pubs/zanzibar-googles-consistent-global-authorization-system/">Zanzibar (USENIX ATC '19)</a> · <a href="https://authzed.com/zanzibar">Annotated Zanzibar</a> · <a href="https://www.erlang.org/doc/system_principles/system_principles.html">Erlang/OTP</a> · <a href="https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/">K8s StatefulSet vs Pod</a></li>
-</ul>
-<h4>业界产品对照</h4>
-<ul>
-<li><a href="https://linear.app/now/our-approach-to-building-the-agent-interaction-sdk">Linear Agent SDK</a> · <a href="https://www.notion.com/help/custom-agents-sharing-and-permissions">Notion Custom Agents</a> · <a href="https://docs.devin.ai/admin/security">Devin Security</a> · <a href="https://www.glean.com/blog/secure-generative-ai-for-the-enterprise-requires-the-right-permissions-structure">Glean permissions</a></li>
-</ul>
+<p class="tiny" style="margin-top:14px;">引用：<a href="https://www.apache.org/foundation/governance/">Apache PMC</a> · <a href="https://www.kernel.org/doc/html/latest/process/maintainer-pgp-guide.html">Linux maintainer</a> · <a href="https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners">CODEOWNERS</a> · <a href="https://www.beyondcorp.com/">BeyondCorp</a> · <a href="https://graylog.org/products/source-available/">Graylog</a> · <a href="https://research.google/pubs/zanzibar-googles-consistent-global-authorization-system/">Zanzibar</a> · <a href="https://cursor.com/docs/agent/plan-mode">Cursor Plan Mode</a></p>
 
 <!-- giscus -->
-<h2 class="purple" style="margin-top:60px;">💬 Comments</h2>
+<h2 class="purple" style="margin-top:56px;">💬 Comments</h2>
 <p style="color:#666;font-size:13px;">用 GitHub 账号登录留言。讨论同步到 <a href="https://github.com/KafkaCat/alice-design-test/discussions">repo Discussions</a>。</p>
 
 <script src="https://giscus.app/client.js"
@@ -376,7 +251,7 @@ Owner 是<em>当前的责任主体</em>，跟「谁创建了它」（creator 是
         async>
 </script>
 
-<p style="margin-top:80px;text-align:center;color:#999;font-size:12px;">
+<p style="margin-top:70px;text-align:center;color:#999;font-size:12px;">
 <a href="../../">← 回索引</a> ·
 <a href="./system-level-features.html">系统级功能</a> ·
 <a href="./runtime-isolation-design.html">Runtime 隔离</a> ·
