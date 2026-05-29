@@ -48,16 +48,15 @@
 <h2>权限模型 / 多租户 / Agent runtime</h2>
 
 <div class="doc">
-  <a href="./design-research/permission-model/">① Alice Agent 权限模型 v3 — 内部协作场景</a>
+  <a href="./design-research/permission-model/">① 核心不变量（Bible）— 内部协作 + AI agent 第一公民</a>
   <div class="meta">
     <span class="tag">core</span>
     <span class="tag">invariants</span>
-    <span class="tag">v3</span>
-    2026-05-26
+    <span class="tag">bible</span>
+    2026-05-29
   </div>
   <div class="summary">
-    9 个设计 invariant（accounter 模型、agent first-class assignee、audit-over-ACL、LLM-as-judge intrusive filter）。
-    14 维度对比 Alice vs Linear/Notion/Cursor/Devin/Glean。包含完整工程设计 + 6-phase roadmap。
+    收束成「圣经」形态：4 个主题分区、11 条紧凑法条。协作核心 = <strong>一个 owner + N collaborator</strong>（agent 和 machine 都适用，owner 权限高 / collaborator 只协作），含 owner≠creator≠caller 解耦、team 组织视图、两条正交权限轴、workspace hard wall、permission≠ACL、audit-over-ACL。只写理想态。
   </div>
 </div>
 
@@ -70,12 +69,12 @@
     2026-05-26
   </div>
   <div class="summary">
-    把 v3 理念落到具体系统级功能：五级 role 体系、agent marketplace、accounter UI、memory 基础设施（底座 × Alice memory）、observability dashboard、intrusive filter UI、service agent 路径、issue×agent 集成。
+    把 bible 法条落到具体系统级功能：两条正交权限轴、owner/collaborator UI、11 底座 + memory pointer 层、Graylog audit dashboard、intrusive filter UI、admin 门控的 service agent、issue×agent 集成。含现状差距与落地清单。
   </div>
 </div>
 
 <div class="doc teal">
-  <a href="./design-research/permission-model/drive-permission-design.html">③ Drive 权限设计 — 融入 v3 模型</a>
+  <a href="./design-research/permission-model/drive-permission-design.html">③ Drive 权限设计 — 融入 bible 模型</a>
   <div class="meta">
     <span class="tag teal">drive</span>
     <span class="tag teal">acl</span>
@@ -83,9 +82,8 @@
     2026-05-26
   </div>
   <div class="summary">
-    把 v3 的 invariant（accounter / audit-over-ACL / agent first-class）注入 drive。
-    四种 space kind（workspace / team / private / agent_output），修复 drive_reference 跨 space 黑盒，
-    space-level ACL 而非 file-level。7-phase rollout 接 drive 当前 schema。
+    把 bible 的 invariant（owner / audit-over-ACL / agent first-class / workspace hard wall）注入 drive。
+    敏感数据靠 workspace 隔离不靠 file-level ACL，space-level ACL，修复 drive_reference 跨 space 黑盒。7-phase rollout 接 drive 当前 schema。
   </div>
 </div>
 
@@ -98,8 +96,8 @@
     最新
   </div>
   <div class="summary">
-    权限模型之外的另一独立维度：agent 跑哪里、跟 user 系统其他进程怎么隔离。
-    3 条 ISO invariant，7 种隔离技术对比，Mac vs Linux 真相，两条 Path + Hybrid 推荐。
+    bible 的物理层配套：agent 跑哪里、跟 user 系统其他进程怎么隔离。
+    4 条 ISO invariant（新增 ISO-4：placement 受 workspace hard wall + machine owner/collaborator 约束），7 种隔离技术对比，Mac vs Linux 真相，两条 Path + Hybrid 推荐。
     ⚠ Mac 上 codex 当前几乎裸跑（Seatbelt bug → danger-full-access fallback）。
   </div>
 </div>

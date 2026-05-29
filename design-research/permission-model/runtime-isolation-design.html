@@ -282,12 +282,13 @@
 <body>
 
 <h1>Runtime 物理隔离 — daemon vs sandbox vs cloud microVM</h1>
-<div class="meta">配套主设计 · 持续迭代中 · 权限模型之外的另一独立维度</div>
+<div class="meta">锚定 <a href="../permission-model/">核心不变量（bible）</a> · 这是「物理层」防御，bible 是「逻辑层」</div>
 
 <div class="hero">
 <h2>这份文档讲什么</h2>
-<p>主设计的 <strong>permission / audit / accountability</strong> 模型是<strong>逻辑层</strong>防御。这份是<strong>物理层</strong>防御 — agent 进程实际跑在哪里？跟 user 系统其他进程怎么隔离？跑出失控 tool call 时，OS 能挡住吗？</p>
+<p>Bible 的 <strong>permission / audit / accountability</strong> 是<strong>逻辑层</strong>防御。这份是<strong>物理层</strong>防御 — agent 进程实际跑在哪里？跟 user 系统其他进程怎么隔离？跑出失控 tool call 时，OS 能挡住吗？</p>
 <p>核心张力：<strong>"daemon-on-user-machine" 哲学</strong>（agent 跑在 user 自己机器，便宜、白盒、低延迟）<strong>vs "strong isolation"</strong>（agent 跑在隔离 VM，安全、可承受不可信代码）。这两者本质冲突，没有银弹。本文给两条 path + 一个 hybrid 推荐。</p>
+<p style="font-size:13.5px;"><strong>物理隔离不是孤立维度</strong>：「agent 跑哪台机器」直接被 bible 的 <strong>INV-2（workspace hard wall）</strong> 和 <strong>INV-4（machine 的 owner + collaborator）</strong> 约束 —— 见 §3 ISO-4。</p>
 </div>
 
 <div class="stat-grid">
@@ -368,19 +369,35 @@
 <div class="invariant critical">
 <h3><span class="inv-tag critical">ISO-1</span>Filesystem 边界是底线</h3>
 <p><strong>陈述</strong>：无论选哪种 sandbox 方案，<strong>agent 进程能写的文件路径必须可枚举、可声明</strong>。默认只能写 task workdir，其他路径（<code>~/.ssh</code>、<code>~/.aws</code>、<code>~/.alice</code>、prod credentials、user 其他项目）必须显式 grant。</p>
-<p>这个 invariant 跟<strong>主设计 INV-7 (intrusive filter)</strong> 不一样 — 那是 logical 层防御（"agent 想读 X，我们 detect 并 prompt"），ISO-1 是 physical 层防御（"agent 进程根本访问不到 X 那个 syscall"）。</p>
+<p>这跟 bible <strong>INV-7（Permission ≠ ACL，intrusive filter）</strong> 互补而非重复 — INV-7 是 logical 层（"agent 想读 X，我们 detect 并 prompt"），ISO-1 是 physical 层（"agent 进程根本访问不到 X 那个 syscall"）。逻辑层会被 prompt injection 绕过，物理层不会。</p>
 </div>
 
 <div class="invariant">
 <h3><span class="inv-tag">ISO-2</span>Network 边界至少 deny-by-default</h3>
-<p><strong>陈述</strong>：Agent 默认只能 outbound 到几个白名单：Alice API、model provider、显式声明的 MCP server。Random outbound（C&C、data exfiltration、bitcoin mining）必须 fail。</p>
+<p><strong>陈述</strong>：Agent 默认只能 outbound 到几个白名单：Alice API、model provider、显式声明的 MCP server。Random outbound（C&C、data exfiltration、bitcoin mining）必须 fail。这直接服务 bible <strong>INV-1 的 P1（数字资产）</strong> 防护。</p>
 <p><strong>当前现状</strong>：codex Linux Landlock 支持 <code>network_access = true</code> （allow all）/ <code>false</code> （allow none），<strong>没有 allowlist 模式</strong>。Mac fallback 后 network 完全开放。这个 invariant 当前 <strong>不满足</strong>。</p>
 </div>
 
 <div class="invariant">
 <h3><span class="inv-tag">ISO-3</span>白盒 &gt; 黑盒，能观测 &gt; 物理隔离强度</h3>
 <p><strong>陈述</strong>：当物理隔离强度 vs 可观测性冲突时，<strong>选可观测性</strong>。一个完美隔离但开发者看不见在做什么的 sandbox（如 e2b 全 cloud），比一个轻量但 daemon 能看到所有 syscall / file access / network 的 sandbox 更糟。</p>
-<p>这跟主设计 INV-8 (audit-over-ACL) 一致 — Alice 优先做透明度，不做不可见的强 enforce。</p>
+<p>这跟 bible <strong>INV-10 (audit-over-ACL)</strong> 一致 — Alice 优先做透明度，不做不可见的强 enforce。Agent 跑在哪、做了什么，都进同一条 audit pipeline。</p>
+</div>
+
+<div class="invariant critical">
+<h3><span class="inv-tag critical">ISO-4</span>Runtime placement 受 collaboration model 约束，不是纯 ops 决策</h3>
+<p><strong>陈述</strong>：「agent 跑哪台 machine」不能只看延迟/成本，必须先满足 bible 的 <strong>INV-2（workspace hard wall）</strong> 和 <strong>INV-4（machine 的 owner + collaborator）</strong>：</p>
+<ul>
+<li><strong>同 workspace 才行（hard wall）</strong>：agent 只能跑在与它<u>同 workspace</u> 的 machine 上。跨 workspace 借机器 = 破墙，绝对禁止。</li>
+<li><strong>machine 的 owner/collaborator 决定谁能借它跑</strong>：
+  <ul>
+  <li><strong>private machine</strong>（visibility=private）：只有 machine owner 自己的 agent 能跑。</li>
+  <li><strong>shared machine</strong>（visibility=public，owner 显式开放）：该 machine 的 collaborator 的 agent 也能跑。</li>
+  </ul>
+</li>
+<li><strong>caller 视角的下钻</strong>：user U 调用 agent A 跑在 machine M 上，要求 U 至少是 M 的 owner 或 collaborator —— 否则等于「拿别人的机器 + 别人的本地 credentials 跑活」，既破 INV-4 也制造 confused deputy。</li>
+</ul>
+<p style="margin-top:6px;">含义：Path A（跑 user 机器）天然满足 —— agent owner 调自己的 agent 跑自己的 machine。一旦要「借」别人的机器，placement 决策就必须查 machine 的 owner/collaborator 关系。这也是 Path B（cloud）的一个动机：cloud sandbox 不属于任何员工的 machine，绕开了「借机器」的信任问题。</p>
 </div>
 
 <!-- ============================ -->
@@ -593,13 +610,14 @@
 
 <h4>分流策略</h4>
 <table>
-<tr><th>场景</th><th>跑哪里</th><th>说明</th></tr>
-<tr><td>普通 user_equivalent agent 日常 task</td><td class="good">Path A (user 机器)</td><td>占比 99%+</td></tr>
-<tr><td>Service mode agent 任何 task</td><td class="mid">Path B (cloud)</td><td>elevated access 不能跑用户机器，跨员工 access HR/finance 等敏感数据</td></tr>
+<tr><th>场景</th><th>跑哪里</th><th>说明（括号内为对应 bible 法条）</th></tr>
+<tr><td>普通 user_equivalent agent 日常 task，跑 owner 自己的 machine</td><td class="good">Path A (user 机器)</td><td>占比 99%+。ISO-4 天然满足（owner 跑自己的机器）</td></tr>
+<tr><td>Service mode agent 任何 task</td><td class="mid">Path B (cloud)</td><td>elevated access（INV-8 service mode）不该跑某个员工的机器；跨敏感 workspace access 时 cloud 不属于任何人，避免「借机器」信任问题（ISO-4 / INV-2）</td></tr>
+<tr><td><strong>agent owner ≠ 目标 machine 的 owner/collaborator</strong></td><td class="mid">Path B (cloud)</td><td>不满足 ISO-4「借机器」前提 → 不落到别人机器，改走 cloud sandbox</td></tr>
 <tr><td>用户机器是 Windows</td><td class="mid">Path B</td><td>Windows 不投入做 native sandbox</td></tr>
-<tr><td>普通 agent 触发 critical intrusive filter (DROP / push --force)</td><td class="mid">Path B + owner approve</td><td>同时升 cloud + 等 owner 决定</td></tr>
+<tr><td>普通 agent 触发 critical intrusive filter (DROP / push --force)</td><td class="mid">Path B + owner approve</td><td>同时升 cloud + 等 owner 决定（INV-7 filter + INV-9 owner approve）</td></tr>
 <tr><td>Owner 离线 + 任务紧急</td><td class="mid">Path B (限时 30 min)</td><td>cloud 跑 + auto-halt if owner 不在 30min 内 review</td></tr>
-<tr><td>Agent 大批量 data access (&gt;100 file)</td><td class="mid">Path B</td><td>避免 user 机器变 data exfiltration 跳板</td></tr>
+<tr><td>Agent 大批量 data access (&gt;100 file)</td><td class="mid">Path B</td><td>避免 user 机器变 data exfiltration 跳板（INV-1 P1）</td></tr>
 </table>
 
 <h4>实施顺序</h4>
@@ -785,8 +803,8 @@ type SandboxPolicy struct {
     NetworkMode   string          // "deny" | "allowlist" | "all"
     AllowedHosts  []string        // alice-api, model provider, declared MCP servers
 
-    // ISO-3: observability
-    StraceOutput  io.Writer       // 写 OTel span 用
+    // ISO-3: observability — 进 audit pipeline (Graylog)，非应用观测
+    AuditSink     io.Writer       // syscall / file / network 事件 → audit event
 }
 
 // 平台分发
@@ -945,10 +963,10 @@ ISO-3 白盒原则要求 user / owner 永远知道 agent 在哪。Agent profile 
   <td><strong>R6</strong></td>
   <td>
     UI runtime indicator<br>
-    OTel span 标 runtime location
+    audit event 带 runtime location 字段（进 Graylog，见 bible INV-10）
   </td>
   <td>1 周</td>
-  <td>Agent profile / issue 上明确显示跑哪里</td>
+  <td>Agent profile / issue 上明确显示跑哪里；audit 可按 machine 检索</td>
 </tr>
 </tbody>
 </table>
@@ -998,9 +1016,10 @@ ALTER TABLE agent ADD COLUMN preferred_runtime TEXT NOT NULL DEFAULT 'local'
 ALTER TABLE agent ADD COLUMN sandbox_policy JSONB;
 -- {writable: [...], readable: [...], denied: [...], network_allowlist: [...], required_grants: [...]}
 
--- 跨 task track runtime location，进 OTel span attribute
--- span.attributes.runtime.location = 'local' | 'cloud-e2b' | 'cloud-firecracker' | ...
--- 不写业务 DB
+-- 跨 task track runtime location，作为 audit event 字段进 Graylog (bible INV-10)
+-- audit.runtime_location = 'local' | 'cloud-e2b' | 'cloud-firecracker' | ...
+-- audit.machine_id = 跑在哪台 machine (配合 ISO-4 placement 审计)
+-- 不写业务 DB，跟应用观测 (APM) 分离
 
 -- Machine 表加 sandbox capability detection
 ALTER TABLE machine ADD COLUMN sandbox_capabilities JSONB;
@@ -1008,19 +1027,20 @@ ALTER TABLE machine ADD COLUMN sandbox_capabilities JSONB;
 -- daemon 启动时 probe 自己机器，回报 alice server
 -- alice 用这个决定 task 能不能 routed 到这台 machine</code></pre>
 
-<h2 class="gray">附录 B — 跟主设计稿的对应</h2>
+<h2 class="gray">附录 B — 跟 bible 的对应</h2>
 
 <table>
 <thead>
-<tr><th>本文档</th><th>主设计稿对应</th><th>系统级 §对应</th></tr>
+<tr><th>本文档（物理层）</th><th>bible 对应（逻辑层）</th><th>系统级 §对应</th></tr>
 </thead>
 <tbody>
-<tr><td>ISO-1 Filesystem 边界</td><td>INV-7 (intrusive filter 在 logical 层兜底)</td><td>§10 Intrusive filter</td></tr>
+<tr><td>ISO-1 Filesystem 边界</td><td>INV-7 (Permission ≠ ACL，intrusive filter 在 logical 层兜底)</td><td>§10 Intrusive filter</td></tr>
 <tr><td>ISO-2 Network deny-default</td><td>INV-1 P1 数字资产保护</td><td>§10 规则库</td></tr>
-<tr><td>ISO-3 白盒优先</td><td>INV-8 audit-over-ACL</td><td>§9 Observability</td></tr>
-<tr><td>Path A user-hardware-trust</td><td>主设计 A1 + A2 (internal trust)</td><td>—</td></tr>
-<tr><td>Path B cloud microVM opt-in</td><td>INV-6 service mode + elevated</td><td>§8 Service Agent</td></tr>
-<tr><td>Hybrid 分流策略</td><td>新增 — 主设计没覆盖</td><td>—</td></tr>
+<tr><td>ISO-3 白盒优先</td><td>INV-10 audit-over-ACL</td><td>§9 Observability</td></tr>
+<tr><td>ISO-4 placement 受协作模型约束</td><td>INV-2 (workspace hard wall) + INV-4 (machine owner/collaborator)</td><td>§4 Machine 详情</td></tr>
+<tr><td>Path A user-hardware-trust</td><td>设计前提：internal trust + agent 跑 owner 自己机器</td><td>—</td></tr>
+<tr><td>Path B cloud microVM opt-in</td><td>INV-8 service mode / elevated + INV-2 跨敏感 workspace</td><td>§8 Service Agent</td></tr>
+<tr><td>Hybrid 分流策略</td><td>新增 — bible 不覆盖物理 placement</td><td>—</td></tr>
 </tbody>
 </table>
 
@@ -1047,7 +1067,7 @@ ALTER TABLE machine ADD COLUMN sandbox_capabilities JSONB;
 
 <p style="margin-top:80px;text-align:center;color:#999;font-size:12px;">
 <a href="../../../">← 回索引</a> ·
-<a href="../permission-model/">主设计稿</a> ·
+<a href="../permission-model/">核心不变量（bible）</a> ·
 <a href="../permission-model/system-level-features.html">系统级功能</a> ·
 <a href="../permission-model/drive-permission-design.html">Drive 设计</a>
 </p>
